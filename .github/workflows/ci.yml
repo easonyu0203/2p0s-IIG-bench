@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
       - run: uv run --locked ruff check
       - run: uv run --locked ruff format --check
       - run: uv run --locked pyright
@@ -28,7 +28,7 @@ jobs:
             resolution: highest
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10
+      - uses: astral-sh/setup-uv@v10.2.0
       - run: >-
           uv run --python ${{ matrix.python }}
           --resolution ${{ matrix.resolution }} pytest
