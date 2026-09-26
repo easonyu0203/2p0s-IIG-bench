@@ -1,0 +1,69 @@
+[project]
+name = "nashbench"
+version = "0.1.0"
+description = "JAX two-player zero-sum imperfect-information games for benchmarking Nash equilibrium solvers."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Eason Yu", email = "breaking0203@gmail.com" }
+]
+keywords = [
+    "jax",
+    "game theory",
+    "nash equilibrium",
+    "imperfect information",
+    "multi-agent reinforcement learning",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "jax>=0.8",
+]
+
+[project.urls]
+Documentation = "https://easonyu0203.github.io/2p0s-IIG-bench"
+Source = "https://github.com/easonyu0203/2p0s-IIG-bench"
+Issues = "https://github.com/easonyu0203/2p0s-IIG-bench/issues"
+
+[build-system]
+requires = ["uv_build>=0.11.28,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "open-spiel>=2.0.2",
+    "pyright[nodejs]>=1.1.414",
+    "pytest>=9.1.1",
+    "ruff>=0.16.9",
+]
+docs = [
+    "myst-parser>=5.1.0",
+    "sphinx>=9.1.0",
+    "sphinx-autobuild>=2025.8.25",
+    "sphinx-book-theme>=1.4.0",
+]
+
+[tool.ruff]
+line-length = 80
+
+[tool.ruff.lint]
+extend-select = ["B", "D", "I", "UP"]
+pydocstyle.convention = "google"
+
+# Google Python style: one import per line, sorted within sections.
+[tool.ruff.lint.isort]
+force-single-line = true
+force-sort-within-sections = true
+single-line-exclusions = ["collections.abc", "typing"]
+
+[tool.pyright]
+include = ["src", "tests"]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"

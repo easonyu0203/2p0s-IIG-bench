@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: uv run --locked ruff check
+      - run: uv run --locked ruff format --check
+      - run: uv run --locked pyright
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Oldest Python with the oldest dependencies that pyproject.toml
+        # allows, and newest Python with the locked dependencies.
+        include:
+          - python: "3.12"
+            resolution: lowest-direct
+          - python: "3.14"
+            resolution: highest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+      - run: >-
+          uv run --python ${{ matrix.python }}
+          --resolution ${{ matrix.resolution }} pytest

@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "charliermarsh.ruff",
+    "executablebookproject.myst-highlight",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "tamasfe.even-better-toml"
+  ]
+}
