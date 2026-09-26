@@ -15,12 +15,11 @@ a single legal bid and plays itself, so a game has `k - 1` decisions.
 
 Both seats act at every step: `current_player` is `nashbench.BOTH`.
 
-```{note}
-OpenSpiel's default Goofspiel, with `imp_info=false`, reveals both bids after
-each turn. Its information states don't record the order of a seat's own
-bids, so they lack perfect recall. nashbench implements the imperfect
-information variant, the one commonly used as a benchmark.
-```
+> [!NOTE]
+> OpenSpiel's default Goofspiel, with `imp_info=false`, reveals both bids after
+> each turn. Its information states don't record the order of a seat's own
+> bids, so they lack perfect recall. nashbench implements the imperfect
+> information variant, the one commonly used as a benchmark.
 
 ## Actions
 

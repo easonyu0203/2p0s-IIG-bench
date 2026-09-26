@@ -1,41 +1,16 @@
-# API reference
+# API
 
 The top-level `nashbench` package exports the public API, for example
-`nashbench.Game`. The sections below document each name in the module that
-defines it.
+`nashbench.Game`. Each name is documented by its docstring, which you can read
+in the source below or with `help(nashbench.Game)`.
 
-## Games
+| Module | Names |
+| --- | --- |
+| [`games`](../src/nashbench/games/__init__.py) | `make`, `REGISTRY` |
+| [`core`](../src/nashbench/core.py) | `Game`, `State`, `TimeStep`, `BOTH`, `auto_reset` |
+| [`policy`](../src/nashbench/policy.py) | `Policy`, `uniform_random` |
+| [`exploitability`](../src/nashbench/exploitability.py) | `exploitability` |
+| [`sequence_form`](../src/nashbench/sequence_form.py) | `SequenceForm`, `enumerate_tree` (not exported) |
 
-```{eval-rst}
-.. autofunction:: nashbench.make
-
-.. autodata:: nashbench.games.REGISTRY
-   :no-value:
-
-.. automodule:: nashbench.core
-   :members:
-```
-
-## Policies
-
-```{eval-rst}
-.. automodule:: nashbench.policy
-   :members:
-   :special-members: __call__
-```
-
-## Evaluation
-
-```{eval-rst}
-.. automodule:: nashbench.exploitability
-   :members:
-```
-
-## Sequence form
-
-To make `exploitability` fast on a large game, override `Game.sequence_form`.
-
-```{eval-rst}
-.. automodule:: nashbench.sequence_form
-   :members:
-```
+To make `exploitability` fast on a large game, override `Game.sequence_form`;
+see [Contributing](../CONTRIBUTING.md#add-a-game).

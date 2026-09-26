@@ -37,15 +37,14 @@ you haven't seen a stone on it.
 | 2–82 | For each cell `i`, dimensions `2 + 9i` to `10 + 9i` one-hot encode OpenSpiel's hex cell state. Before the game ends, only offset 3 (white), 4 (no stone seen), and 5 (black) occur. |
 | 83–163 | Your tries in order: nine slots, each one-hot over the nine cells. Unused slots are zeros. |
 
-```{note}
-OpenSpiel's `dark_hex` information-state *string* also contains the total
-number of moves, which reveals how many times your opponent has tried.
-OpenSpiel's information-state *tensor* doesn't, and nashbench follows the
-tensor. As a result, several OpenSpiel strings can map to one nashbench
-observation. Tools that key information states by these strings, such as
-OpenSpiel's tabular best response, give the best responder this extra
-information.
-```
+> [!NOTE]
+> OpenSpiel's `dark_hex` information-state *string* also contains the total
+> number of moves, which reveals how many times your opponent has tried.
+> OpenSpiel's information-state *tensor* doesn't, and nashbench follows the
+> tensor. As a result, several OpenSpiel strings can map to one nashbench
+> observation. Tools that key information states by these strings, such as
+> OpenSpiel's tabular best response, give the best responder this extra
+> information.
 
 ## Rewards
 

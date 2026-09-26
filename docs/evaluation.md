@@ -70,29 +70,18 @@ game object reuse it.
     point cards and each seat's order of bids. Each call sums over all of
     them in one vectorized pass, without a traversal.
 
-On an NVIDIA RTX 3080 Ti Laptop GPU:
-
-| Game | First call | Later calls |
-| --- | --- | --- |
-| `kuhn_poker` | 1.5 s | 4 ms |
-| `leduc_poker` | 2.9 s | 4 ms |
-| `phantom_ttt` | 37 s | 18 s |
-| `phantom_ttt_abrupt` | 48 s | 24 s |
-| `dark_hex3` | 43 s | 24 s |
-| `dark_hex3_abrupt` | 58 s | 32 s |
-| `goofspiel` | 4.2 s | 0.6 s |
-
-The largest game, `dark_hex3_abrupt`, uses about 7 GiB of GPU memory.
+The [README](../README.md) lists the time of a later call for each game. The
+first call also builds the sequence form, which adds 1.5 to 26 s. The largest
+game, `dark_hex3_abrupt`, uses about 7 GiB of GPU memory.
 
 For comparison, [exp-a-spiel](https://github.com/gabrfarina/exp-a-spiel), a
 C++ implementation, takes about 80 s per call on 20 CPU threads for the
 classical phantom games, and more than 30 GB of memory for the abrupt ones.
 
-```{note}
-Evaluate phantom games on an accelerator. On CPU, a single traversal of
-their tree takes more than 40 minutes, even with 8 CPU devices. Goofspiel
-takes 6 s per call on CPU.
-```
+> [!NOTE]
+> Evaluate phantom games on an accelerator. On CPU, a single traversal of
+> their tree takes more than 40 minutes, even with 8 CPU devices. Goofspiel
+> takes 6 s per call on CPU.
 
 The results agree with OpenSpiel on poker games and on Goofspiel with 3 and
 4 cards, and with exp-a-spiel on classical phantom games, to within 10^-5.

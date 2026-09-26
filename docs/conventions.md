@@ -59,11 +59,10 @@ outcome of an illegal action is unspecified.
 Most games are turn-based. In Goofspiel, both seats bid at once, and
 `current_player` is `nashbench.BOTH` at every step.
 
-```{note}
-In a turn-based game, if you run the policy for both players at every step,
-as in the examples, half of that computation is for the player who isn't
-acting. nashbench accepts this cost in exchange for one API for all games.
-```
+> [!NOTE]
+> In a turn-based game, if you run the policy for both players at every step,
+> as in the examples, half of that computation is for the player who isn't
+> acting. nashbench accepts this cost in exchange for one API for all games.
 
 ## Observations
 
@@ -82,7 +81,7 @@ As a result, observations have these properties:
 -   **Perfect recall.** An observation encodes everything the seat has seen,
     so a policy doesn't need memory.
 
-Each game's page lists what every dimension means.
+Each [game's page](games/README.md) lists what every dimension means.
 
 ## Actions
 

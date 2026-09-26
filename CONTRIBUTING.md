@@ -21,17 +21,12 @@ issue first so we can agree on the design.
     uv run ruff format
     uv run pyright
     uv run pytest
-    uv run --group docs sphinx-build -W docs docs/_build/html
     ```
 
 If you use VS Code, install the recommended extensions when prompted. Ruff
 and Pylance then flag problems as you type, files are formatted on save,
-tests appear in the Testing view, and these tasks are available:
-
--   **Run all checks** (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd>): lint,
-    format, type, and test checks.
--   **Preview docs** (**Terminal > Run Task**): serves the docs and reloads
-    them as you edit.
+tests appear in the Testing view, and
+<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> runs all the checks.
 
 ## Code style
 
@@ -40,6 +35,11 @@ Code follows the
 and docs follow the
 [Google developer documentation style guide](https://developers.google.com/style).
 Ruff enforces formatting, import order, and docstrings.
+
+Docs are Markdown files that GitHub renders: [README.md](README.md) and
+[docs/](docs). State each fact on one page and link to it from the others.
+Docstrings are the API reference. In README.md, use absolute GitHub URLs,
+because PyPI also renders it; elsewhere, use relative links.
 
 Keep the code minimal. Every line should be needed to understand or run the
 library. Comment only what the code can't say.
@@ -65,7 +65,8 @@ returns, and information-state tensors. To add one:
     with the player, as in poker, don't repeat it.
 1.  Register the game in `src/nashbench/games/__init__.py`.
 1.  Add `docs/games/<name>.md`, which lists the actions and what each
-    observation dimension means, and add the game to `docs/games/index.md`.
+    observation dimension means. Add the game to the tables in
+    [docs/games/README.md](docs/games/README.md) and [README.md](README.md).
 1.  Add the game to `GAMES` in `tests/openspiel_test.py`. If the game has
     chance events, set them in `_replay`, and to check every history, list
     its deals in `DEALS`. The tests then compare the game with OpenSpiel at

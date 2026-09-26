@@ -15,16 +15,17 @@ compute.
 
 | Game | Information sets | Terminal histories | Exploitability (GPU) |
 | --- | --- | --- | --- |
-| Kuhn poker | 12 | 30 | 4 ms |
-| Leduc poker | 936 | 5,520 | 4 ms |
-| Goofspiel, 6 cards | 23.1 M | 3.7 × 10^8 | 0.6 s |
-| Phantom Tic-Tac-Toe | 6.0 M | 9.8 × 10^9 | 18 s |
-| Phantom Tic-Tac-Toe, abrupt | 23.3 M | 1.4 × 10^10 | 24 s |
-| Dark Hex 3 | 6.1 M | 9.5 × 10^9 | 24 s |
-| Dark Hex 3, abrupt | 27.3 M | 1.5 × 10^10 | 32 s |
+| [`kuhn_poker`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/kuhn_poker.md) | 12 | 30 | 4 ms |
+| [`leduc_poker`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/leduc_poker.md) | 936 | 5,520 | 4 ms |
+| [`goofspiel`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/goofspiel.md) | 23,050,572 | 373,248,000 | 0.6 s |
+| [`phantom_ttt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/phantom_ttt.md) | 5,990,669 | 9,829,101,024 | 18 s |
+| [`phantom_ttt_abrupt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/phantom_ttt.md) | 23,310,269 | 13,578,403,440 | 24 s |
+| [`dark_hex3`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/dark_hex.md) | 6,072,917 | 9,469,697,760 | 24 s |
+| [`dark_hex3_abrupt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/dark_hex.md) | 27,325,277 | 14,663,760,672 | 32 s |
 
-Times are per call on an NVIDIA RTX 3080 Ti Laptop GPU, after the first call
-for a game.
+Information sets are counted for both seats. Times are per call on an NVIDIA
+RTX 3080 Ti Laptop GPU, after the first call for a game; see
+[Evaluation](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/evaluation.md#how-its-computed).
 
 ## Install
 
@@ -66,16 +67,21 @@ print(timestep.reward)  # [2]: sums to zero.
 print(nashbench.exploitability(game, policy))
 ```
 
-Before you train, read
-[Conventions](https://easonyu0203.github.io/2p0s-IIG-bench/conventions.html).
-It explains how players, seats, observations, and rewards work, and how to
-play many games in parallel.
+Before you train, read [Conventions](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/conventions.md). It explains
+how players, seats, observations, and rewards work, and how to play many
+games in parallel.
 
 ## Documentation
 
-See the [documentation](https://easonyu0203.github.io/2p0s-IIG-bench) for
-the games, the policy interface, and the API reference. To contribute, see
-[CONTRIBUTING.md](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/CONTRIBUTING.md).
+-   [Conventions](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/conventions.md): players, seats, the step API,
+    observations, and rewards.
+-   [Games](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/README.md): the rules, actions, and observation
+    layout of each game.
+-   [Evaluation](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/evaluation.md): the policy interface and how
+    exploitability is computed.
+-   [API](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/api.md): where each public name is defined. Its docstring
+    is the reference.
+-   [Contributing](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/CONTRIBUTING.md): set up, check, and add a game.
 
 ## License
 
