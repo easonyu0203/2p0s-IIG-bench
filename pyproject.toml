@@ -32,7 +32,7 @@ Source = "https://github.com/easonyu0203/2p0s-IIG-bench"
 Issues = "https://github.com/easonyu0203/2p0s-IIG-bench/issues"
 
 [build-system]
-requires = ["uv_build>=0.11.28,<0.12.0"]
+requires = ["uv_build>=0.11.28,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
