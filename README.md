@@ -42,11 +42,15 @@ import nashbench
 game = nashbench.make("leduc_poker")
 
 # A policy maps one player's observation to action probabilities.
-params = jax.random.normal(jax.random.key(0), (*game.observation_shape, game.num_actions))
+params = jax.random.normal(
+    jax.random.key(0), (*game.observation_shape, game.num_actions)
+)
+
 
 def policy(observation, legal_action_mask):
     logits = observation @ params  # Your network goes here.
     return jax.nn.softmax(jnp.where(legal_action_mask, logits, -jnp.inf))
+
 
 # Play one game. The same policy acts for both players.
 key = jax.random.key(1)
