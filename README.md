@@ -61,22 +61,22 @@ print(timestep.reward)  # [2]: sums to zero.
 print(nashbench.exploitability(game, policy))
 ```
 
-Before you train, read [Conventions](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/conventions.md). It explains
-how players, seats, observations, and rewards work, and how to play many
-games in parallel.
+Before you train, read [Core concepts](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/core-concepts.md). It explains
+players, seats, observations, rewards, and how to play many games in
+parallel.
 
 ## Documentation
 
--   [Conventions](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/conventions.md): players, seats, the step API,
+-   [Core concepts](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/core-concepts.md): players, seats, the step API,
     observations, and rewards.
+-   [Evaluation](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/evaluation.md): the policy interface and how
+    exploitability is computed.
 -   [Games](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/index.md): the rules, actions, and observation
     layout of each game.
 -   [Benchmarks](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/benchmarks.md): game sizes, exact evaluation times, simulation
     throughput, and measurement conditions.
--   [Evaluation](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/evaluation.md): the policy interface and how
-    exploitability is computed.
--   [API](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/api.md): where each public name is defined. Its docstring
-    is the reference.
+-   [API reference](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/api-reference.md): every name that `nashbench` exports
+    and the source containing its docstring.
 -   [Contributing](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/CONTRIBUTING.md): set up, check, and add a game.
 
 ## License

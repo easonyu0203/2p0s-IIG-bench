@@ -16,7 +16,7 @@ def policy(observation, legal_action_mask):
 The function takes a single, unbatched observation. It must be
 JAX-transformable, because evaluation calls it under `jax.jit` and
 `jax.vmap`. One policy plays both seats; see
-[Conventions](conventions.md#one-policy-plays-both-seats).
+[Core concepts](core-concepts.md#one-policy-plays-both-seats).
 
 To turn a network into a policy, close over its parameters and mask its
 logits. For example, with Flax:

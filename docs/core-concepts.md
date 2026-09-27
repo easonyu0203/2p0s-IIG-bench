@@ -1,6 +1,7 @@
-# Conventions
+# Core concepts
 
-This page states the conventions and assumptions that nashbench follows.
+This page explains nashbench's environment model and the assumptions that its
+API follows.
 
 ## Players and seats
 
