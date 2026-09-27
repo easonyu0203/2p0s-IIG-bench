@@ -9,6 +9,7 @@ computation of behavior strategies", 1996.
 
 from collections.abc import Callable
 import dataclasses
+import functools
 
 import jax
 import jax.numpy as jnp
@@ -135,7 +136,7 @@ def _batched(fn):
     def call(*args):
         args = jax.tree.map(np.asarray, args)
         n = len(jax.tree.leaves(args)[0])
-        pad = (1 << (n - 1).bit_length()) - n
+        pad = max(1 << (n - 1).bit_length(), 2**12) - n
         args = jax.tree.map(
             lambda x: np.concatenate([x, x[:1].repeat(pad, 0)]), args
         )
@@ -209,6 +210,12 @@ def _from_tables(parents, observations, masks, last_sequences, weights):
         levels=tuple((int(s), int(e)) for s, e in bounds),
         parent=jnp.asarray(parent, jnp.int32),
         legal_action_mask=jnp.asarray(mask),
-        observe=lambda ids: observation[ids],
+        observe=functools.partial(_rows, observation),
         gradient=gradient,
     )
+
+
+@jax.jit
+def _rows(array, ids):
+    """Returns rows `ids` of `array`."""
+    return array[ids]

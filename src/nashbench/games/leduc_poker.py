@@ -62,21 +62,23 @@ class LeducPoker(core.Game[LeducState]):
         a = action[seat]
         # Calling matches the highest ante; raising then adds 2 or 4 chips.
         raise_size = jnp.where(state.round == 0, 2, 4)
-        stakes = state.ante.max() + jnp.where(a == RAISE, raise_size, 0)
+        stakes = jnp.maximum(*state.ante) + jnp.where(a == RAISE, raise_size, 0)
         position = (state.sequences[state.round] >= 0).sum()
         # With two players, any call but the opening check ends the round.
         round_over = (a == CALL) & (position > 0)
         next_round = round_over & (state.round == 0)
+        acting = jnp.arange(2) == seat
+        slot = (jnp.arange(2)[:, None] == state.round) & (
+            jnp.arange(4) == position
+        )
         return dataclasses.replace(
             state,
             current_seat=jnp.where(next_round, 0, 1 - seat),
             done=(a == FOLD) | (round_over & (state.round == 1)),
             round=state.round + next_round,
-            ante=state.ante.at[seat].set(
-                jnp.where(a == FOLD, state.ante[seat], stakes)
-            ),
-            sequences=state.sequences.at[state.round, position].set(a),
-            folded=state.folded.at[seat].set(a == FOLD),
+            ante=jnp.where(acting & (a != FOLD), stakes, state.ante),
+            sequences=jnp.where(slot, a, state.sequences),
+            folded=state.folded | (acting & (a == FOLD)),
         )
 
     @override
@@ -97,7 +99,7 @@ class LeducPoker(core.Game[LeducState]):
         num_raises = (state.sequences[state.round] == RAISE).sum()
         return jnp.stack(
             [
-                state.ante[seat] < state.ante.max(),
+                state.ante[seat] < state.ante[1 - seat],
                 jnp.bool_(True),
                 num_raises < 2,
             ]
@@ -107,9 +109,9 @@ class LeducPoker(core.Game[LeducState]):
     def returns(self, state):
         rank = _hand_rank(state.private_cards, state.public_card)
         winners = jnp.where(
-            state.folded.any(), ~state.folded, rank == rank.max()
+            state.folded[0] | state.folded[1], ~state.folded, rank >= rank[::-1]
         )
-        pot_share = winners * state.ante.sum() / winners.sum()
+        pot_share = winners * (state.ante[0] + state.ante[1]) / winners.sum()
         return jnp.where(state.done, pot_share - state.ante, 0.0)
 
 

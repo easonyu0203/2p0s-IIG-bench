@@ -57,7 +57,7 @@ force-sort-within-sections = true
 single-line-exclusions = ["collections.abc", "typing"]
 
 [tool.pyright]
-include = ["src", "tests"]
+include = ["benchmarks", "src", "tests"]
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"

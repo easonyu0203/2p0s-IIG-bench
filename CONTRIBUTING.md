@@ -60,6 +60,11 @@ returns, and information-state tensors. To add one:
     Implement the rules for seats, where seat `i` is OpenSpiel's player `i`;
     `Game.reset` and `Game.step` handle players and the seat shuffle. For the
     simplest example, see `kuhn_poker.py`.
+
+    Games run in batches on accelerators, so write the rules with
+    elementwise operations. For example, to set `x[i]` where `i` depends on
+    the state, use `jnp.where(jnp.arange(x.size) == i, v, x)`: under
+    `jax.vmap`, `x.at[i].set(v)` becomes a scatter, a separate GPU kernel.
 1.  Make `observe` return a one-hot encoding of the seat followed by
     OpenSpiel's information-state tensor. If OpenSpiel's tensor already starts
     with the player, as in poker, don't repeat it.
@@ -67,6 +72,9 @@ returns, and information-state tensors. To add one:
 1.  Add `docs/games/<name>.md`, which lists the actions and what each
     observation dimension means. Add the game to the tables in
     [docs/games/README.md](docs/games/README.md) and [README.md](README.md).
+    [`benchmarks/stats.py`](benchmarks/stats.py) measures their numbers,
+    except the number of terminal histories, which you count. Run it on an
+    NVIDIA RTX A6000, the GPU for every measurement in the docs.
 1.  Add the game to `GAMES` in `tests/openspiel_test.py`. If the game has
     chance events, set them in `_replay`, and to check every history, list
     its deals in `DEALS`. The tests then compare the game with OpenSpiel at

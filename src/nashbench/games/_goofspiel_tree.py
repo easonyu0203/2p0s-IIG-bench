@@ -30,16 +30,12 @@ def sequence_form(game) -> sequence_form_lib.SequenceForm:
     """Returns the sequence form of a Goofspiel game."""
     k = game.num_cards
     tables = _Tables(k)
-    ids = jnp.arange(2 * tables.num_infosets)
+    num_ids = 2 * tables.num_infosets
+    # Chunks are padded to one size, to compile once.
+    ids = jnp.arange(num_ids + -num_ids % _CHUNK).reshape(-1, _CHUNK) % num_ids
     parent, legal = (
-        jnp.concatenate(x)
-        for x in zip(
-            *(
-                _parent_and_legal(tables, ids[i : i + _CHUNK])
-                for i in range(0, ids.size, _CHUNK)
-            ),
-            strict=True,
-        )
+        jnp.concatenate(x)[:num_ids]
+        for x in zip(*(_parent_and_legal(tables, i) for i in ids), strict=True)
     )
     levels = tuple(
         (
@@ -86,22 +82,21 @@ class _Tables:
         pair_of, pair_bids, pair_opponent, num_pairs = [], [], [], []
         for t in range(k - 1):  # The last turn plays itself.
             mine = perms[:: math.factorial(k - t), :t]
-            witness = {}
-            for rank, bids in enumerate(mine):
-                for theirs in mine:
-                    key = rank * 3**t + _code(np.sign(bids - theirs) + 1)
-                    witness.setdefault(int(key), theirs)
-            keys = sorted(witness)
+            # Every seat's bids against every opponent's; the first opponent
+            # bids to produce each (bids, winners) witness it.
+            winners = _code(np.sign(mine[:, None] - mine[None]) + 1)
+            keys = np.arange(len(mine))[:, None] * 3**t + winners
+            keys, first = np.unique(keys, return_index=True)
             table = np.full(len(mine) * 3**t, -1)
             table[keys] = np.arange(len(keys))
             pair_of.append(table)
-            for key in keys:
-                pair_bids.append(
-                    np.pad(mine[key // 3**t], (0, k - t), constant_values=-1)
-                )
-                pair_opponent.append(
-                    np.pad(witness[key], (0, k - t), constant_values=-1)
-                )
+            pad = ((0, 0), (0, k - t))
+            pair_bids.append(
+                np.pad(mine[keys // 3**t], pad, constant_values=-1)
+            )
+            pair_opponent.append(
+                np.pad(mine[first % len(mine)], pad, constant_values=-1)
+            )
             num_pairs.append(len(keys))
         self.offset = np.cumsum(
             [0] + [math.perm(k, t + 1) * n for t, n in enumerate(num_pairs)]
@@ -115,8 +110,8 @@ class _Tables:
             np.cumsum([0] + [p.size for p in pair_of])
         )
         self.pair_base = jnp.asarray(np.cumsum([0, *num_pairs]))
-        self.pair_bids = jnp.asarray(np.array(pair_bids))
-        self.pair_opponent = jnp.asarray(np.array(pair_opponent))
+        self.pair_bids = jnp.asarray(np.concatenate(pair_bids))
+        self.pair_opponent = jnp.asarray(np.concatenate(pair_opponent))
 
     def describe(self, ids):
         """Returns what identifies information sets, and a way to reach them.

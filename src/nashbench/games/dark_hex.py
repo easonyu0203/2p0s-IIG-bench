@@ -4,6 +4,7 @@ from typing import override
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench.games import _phantom
 
@@ -18,14 +19,14 @@ class DarkHex3(_phantom.PhantomGame):
     observation_shape = (164,)
 
     @override
-    def _has_won(self, board, seat):
-        stones = (board == seat).reshape(3, 3)
+    def _wins(self, stones, seat):
         # Transposing preserves hex adjacency and swaps the two directions.
-        stones = jnp.where(seat == 0, stones, stones.T)
-        reached = stones.at[1:].set(False)
+        if seat == 1:
+            stones = stones.swapaxes(-1, -2)
+        reached = stones & (np.arange(3) == 0)[:, None]
         for _ in range(_phantom.NUM_CELLS):
             reached = stones & (reached | _neighbors(reached))
-        return reached[-1].any()
+        return reached[..., -1, :].any(-1)
 
     @override
     def _encode_view(self, view):
@@ -34,16 +35,16 @@ class DarkHex3(_phantom.PhantomGame):
         return jax.nn.one_hot(cell_state, 9).ravel()
 
 
-def _neighbors(cells: jax.Array) -> jax.Array:
-    """Returns the cells adjacent to any of `cells`, a `[3, 3]` bool mask."""
+def _neighbors(cells: np.ndarray) -> np.ndarray:
+    """Returns the cells adjacent to any of `cells`, `[..., 3, 3]` bool."""
     # Cell (r, c) neighbors (r-1, c), (r-1, c+1), (r, c-1), (r, c+1),
     # (r+1, c-1), and (r+1, c).
-    p = jnp.pad(cells, 1)
+    p = np.pad(cells, [(0, 0)] * (cells.ndim - 2) + [(1, 1), (1, 1)])
     return (
-        p[:-2, 1:-1]
-        | p[:-2, 2:]
-        | p[1:-1, :-2]
-        | p[1:-1, 2:]
-        | p[2:, :-2]
-        | p[2:, 1:-1]
+        p[..., :-2, 1:-1]
+        | p[..., :-2, 2:]
+        | p[..., 1:-1, :-2]
+        | p[..., 1:-1, 2:]
+        | p[..., 2:, :-2]
+        | p[..., 2:, 1:-1]
     )

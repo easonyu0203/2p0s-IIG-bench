@@ -56,12 +56,13 @@ class Goofspiel(core.Game[GoofspielState]):
     @override
     def apply_action(self, state, action):
         k = self.num_cards
-        bids = state.bids.at[:, state.turn].set(action)
+        turns = jnp.arange(k)
+        bids = jnp.where(turns == state.turn, action[:, None], state.bids)
         # The last turn has a single legal bid per seat, so it plays itself.
-        turn = state.turn + 1
         last = k * (k - 1) // 2 - bids[:, : k - 1].sum(1)
-        bids = jnp.where(turn == k - 1, bids.at[:, k - 1].set(last), bids)
-        turn = jnp.where(turn == k - 1, k, turn)
+        plays_itself = (state.turn == k - 2) & (turns == k - 1)
+        bids = jnp.where(plays_itself, last[:, None], bids)
+        turn = jnp.where(state.turn == k - 2, k, state.turn + 1)
         return dataclasses.replace(state, done=turn == k, bids=bids, turn=turn)
 
     @override

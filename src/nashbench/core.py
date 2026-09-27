@@ -98,14 +98,7 @@ class Game[S: GameState](abc.ABC):
 
     def reset(self, key: jax.Array) -> tuple[State[S], TimeStep]:
         """Starts an episode, assigning players to seats at random."""
-        key, seat_key, chance_key = jax.random.split(key, 3)
-        states, probs = self.initial_states()
-        i = jax.random.choice(chance_key, probs.size, p=probs)
-        state = State(
-            key=key,
-            seat=jax.random.permutation(seat_key, 2),
-            game_state=jax.tree.map(lambda x: x[i], states),
-        )
+        state = self._initial_state(key)
         return state, self._timestep(state, reward=jnp.zeros(2))
 
     def step(
@@ -122,14 +115,39 @@ class Game[S: GameState](abc.ABC):
             The next state and timestep. Once the episode is done, `step`
             leaves the state unchanged and returns zero rewards.
         """
+        state, reward = self._advance(state, action)
+        return state, self._timestep(state, reward)
+
+    def _initial_state(self, key: jax.Array) -> State[S]:
+        """Returns the state of a new episode, without its timestep."""
+        key, seat_key, chance_key = jax.random.split(key, 3)
+        # Compute the chance tables once, when tracing, not at every call.
+        with jax.ensure_compile_time_eval():
+            states, probs = self.initial_states()
+            cumulative = jnp.cumsum(probs)
+        u = jax.random.uniform(chance_key, maxval=cumulative[-1])
+        # Unrolled, the binary search needs no loop on accelerators.
+        i = jnp.searchsorted(
+            cumulative, u, side="right", method="scan_unrolled"
+        )
+        return State(
+            key=key,
+            # A fair coin swaps the seats of both players or of neither.
+            seat=jnp.arange(2) ^ jax.random.bernoulli(seat_key),
+            game_state=jax.tree.map(lambda x: x[i], states),
+        )
+
+    def _advance(
+        self, state: State[S], action: jax.Array
+    ) -> tuple[State[S], jax.Array]:
+        """Returns the next state and the `[2]` reward of each player."""
         # A permutation of two elements is its own inverse, so indexing with
         # `seat` maps player-indexed arrays to seat-indexed ones and back.
         old = state.game_state
         new = self.apply_action(old, action[state.seat])
         new = jax.tree.map(lambda o, n: jnp.where(old.done, o, n), old, new)
         reward = (self.returns(new) - self.returns(old))[state.seat]
-        state = dataclasses.replace(state, game_state=new)
-        return state, self._timestep(state, reward)
+        return dataclasses.replace(state, game_state=new), reward
 
     def _timestep(self, state: State[S], reward: jax.Array) -> TimeStep:
         game_state = state.game_state
@@ -202,15 +220,14 @@ def auto_reset(
     """
 
     def step(state: State, action: jax.Array) -> tuple[State, TimeStep]:
-        state, timestep = game.step(state, action)
-        next_state, next_timestep = game.reset(state.key)
-        next_timestep = dataclasses.replace(
-            next_timestep, reward=timestep.reward, done=timestep.done
+        state, reward = game._advance(state, action)
+        done = state.game_state.done
+        state = jax.tree.map(
+            lambda n, o: jnp.where(done, n, o),
+            game._initial_state(state.key),
+            state,
         )
-        return jax.tree.map(
-            lambda n, o: jnp.where(timestep.done, n, o),
-            (next_state, next_timestep),
-            (state, timestep),
-        )
+        timestep = game._timestep(state, reward)
+        return state, dataclasses.replace(timestep, done=done)
 
     return step

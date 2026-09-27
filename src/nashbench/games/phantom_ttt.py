@@ -4,6 +4,7 @@ from typing import override
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench.games import _phantom
 
@@ -14,13 +15,13 @@ class PhantomTTT(_phantom.PhantomGame):
     observation_shape = (110,)
 
     @override
-    def _has_won(self, board, seat):
-        stones = (board == seat).reshape(3, 3)
+    def _wins(self, stones, seat):
+        del seat  # Both seats win with a line.
         return (
-            stones.all(axis=0).any()
-            | stones.all(axis=1).any()
-            | jnp.diag(stones).all()
-            | jnp.diag(jnp.fliplr(stones)).all()
+            stones.all(-1).any(-1)
+            | stones.all(-2).any(-1)
+            | np.diagonal(stones, axis1=-2, axis2=-1).all(-1)
+            | np.diagonal(np.flip(stones, -1), axis1=-2, axis2=-1).all(-1)
         )
 
     @override

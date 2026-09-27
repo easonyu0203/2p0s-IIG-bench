@@ -12,6 +12,7 @@ from typing import override
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench import core
 from nashbench.games import _phantom_tree
@@ -42,12 +43,14 @@ class PhantomGame(core.Game[PhantomState]):
     def __init__(self, abrupt: bool):
         """Creates the classical version, or the abrupt one if `abrupt`."""
         self.abrupt = abrupt
+        stones = (np.arange(2**NUM_CELLS)[:, None] >> np.arange(NUM_CELLS)) & 1
+        stones = stones.astype(bool).reshape(-1, 3, 3)
+        # Whether a seat wins, by seat and by its stones as a bitmask.
+        self._win_table = np.stack([self._wins(stones, s) for s in range(2)])
 
     @abc.abstractmethod
-    def _has_won(
-        self, board: jax.Array, seat: jax.typing.ArrayLike
-    ) -> jax.Array:
-        """Returns whether `seat` has won on `board`."""
+    def _wins(self, stones: np.ndarray, seat: int) -> np.ndarray:
+        """Returns whether `seat` wins with `stones`, `[..., 3, 3]` bool."""
 
     @abc.abstractmethod
     def _encode_view(self, view: jax.Array) -> jax.Array:
@@ -69,10 +72,10 @@ class PhantomGame(core.Game[PhantomState]):
     def apply_action(self, state, action):
         seat = state.current_seat
         cell = action[seat]
+        cells = jnp.arange(NUM_CELLS)
         placed = state.board[cell] < 0
-        board = state.board.at[cell].set(
-            jnp.where(placed, seat, state.board[cell])
-        )
+        board = jnp.where((cells == cell) & placed, seat, state.board)
+        own = (jnp.arange(2) == seat)[:, None]
         num_tries = (state.history[seat] >= 0).sum()
         return dataclasses.replace(
             state,
@@ -80,8 +83,8 @@ class PhantomGame(core.Game[PhantomState]):
             current_seat=jnp.where(placed | self.abrupt, 1 - seat, seat),
             done=self._has_won(board, seat) | (board >= 0).all(),
             board=board,
-            view=state.view.at[seat, cell].set(board[cell]),
-            history=state.history.at[seat, num_tries].set(cell),
+            view=jnp.where(own & (cells == cell), board[cell], state.view),
+            history=jnp.where(own & (cells == num_tries), cell, state.history),
         )
 
     @override
@@ -97,6 +100,11 @@ class PhantomGame(core.Game[PhantomState]):
     @override
     def legal_action_mask(self, state, seat):
         return state.view[seat] < 0
+
+    def _has_won(self, board, seat):
+        """Returns whether `seat` has won on `board`."""
+        stones = jnp.where(board == seat, 1 << jnp.arange(NUM_CELLS), 0).sum()
+        return jnp.asarray(self._win_table)[seat, stones]
 
     @functools.cached_property
     def sequence_form(self):

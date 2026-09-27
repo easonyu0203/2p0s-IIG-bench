@@ -45,16 +45,18 @@ class KuhnPoker(core.Game[KuhnState]):
 
     @override
     def apply_action(self, state, action):
-        num_actions = (state.history >= 0).sum() + 1
-        history = state.history.at[num_actions - 1].set(
-            action[state.current_seat]
+        num_actions = (state.history >= 0).sum()
+        history = jnp.where(
+            jnp.arange(3) == num_actions,
+            action[state.current_seat],
+            state.history,
         )
         # Only pass-bet continues after two actions.
         pass_bet = (history[0] == PASS) & (history[1] == BET)
         return dataclasses.replace(
             state,
-            current_seat=num_actions % 2,
-            done=(num_actions == 3) | ((num_actions == 2) & ~pass_bet),
+            current_seat=(num_actions + 1) % 2,
+            done=(num_actions == 2) | ((num_actions == 1) & ~pass_bet),
             history=history,
         )
 
@@ -76,14 +78,10 @@ class KuhnPoker(core.Game[KuhnState]):
     def returns(self, state):
         # Seat 0 takes actions 0 and 2, seat 1 takes action 1.
         bet = state.history == BET
-        did_bet = jnp.stack([bet[0] | bet[2], bet[1]])
+        bet0, bet1 = bet[0] | bet[2], bet[1]
         # With equal bets the higher card wins; otherwise the passer folded.
-        winner = jnp.where(
-            did_bet[0] == did_bet[1],
-            jnp.argmax(state.cards),
-            jnp.argmax(did_bet),
-        )
-        # The winner takes the loser's ante and bet.
-        loser_stake = 1 + did_bet[1 - winner]
-        sign = jnp.where(jnp.arange(2) == winner, 1, -1)
-        return jnp.where(state.done, sign * loser_stake, 0)
+        winner = jnp.where(bet0 == bet1, state.cards[1] > state.cards[0], bet1)
+        # The loser pays its ante, and its bet if both bet.
+        stake = 1 + (bet0 & bet1)
+        won = jnp.arange(2) == winner
+        return jnp.where(state.done, jnp.where(won, stake, -stake), 0)

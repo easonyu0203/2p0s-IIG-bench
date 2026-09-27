@@ -11,20 +11,21 @@ compute.
 -   **One policy interface**: a function from an observation and its legal
     actions to action probabilities, which plays both seats.
 -   **Exact exploitability** of that policy, from milliseconds for poker to
-    about 30 seconds on a GPU for games with 10^10 histories.
+    under 10 seconds on a GPU for games with 10^10 histories.
 
 | Game | Information sets | Terminal histories | Exploitability (GPU) |
 | --- | --- | --- | --- |
-| [`kuhn_poker`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/kuhn_poker.md) | 12 | 30 | 4 ms |
-| [`leduc_poker`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/leduc_poker.md) | 936 | 5,520 | 4 ms |
-| [`goofspiel`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/goofspiel.md) | 23,050,572 | 373,248,000 | 0.6 s |
-| [`phantom_ttt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/phantom_ttt.md) | 5,990,669 | 9,829,101,024 | 18 s |
-| [`phantom_ttt_abrupt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/phantom_ttt.md) | 23,310,269 | 13,578,403,440 | 24 s |
-| [`dark_hex3`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/dark_hex.md) | 6,072,917 | 9,469,697,760 | 24 s |
-| [`dark_hex3_abrupt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/dark_hex.md) | 27,325,277 | 14,663,760,672 | 32 s |
+| [`kuhn_poker`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/kuhn_poker.md) | 12 | 30 | 1.3 ms |
+| [`leduc_poker`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/leduc_poker.md) | 936 | 5,520 | 1.2 ms |
+| [`goofspiel`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/goofspiel.md) | 23,050,572 | 373,248,000 | 83 ms |
+| [`phantom_ttt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/phantom_ttt.md) | 5,990,669 | 9,829,101,024 | 5.4 s |
+| [`phantom_ttt_abrupt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/phantom_ttt.md) | 23,310,269 | 13,578,403,440 | 8.1 s |
+| [`dark_hex3`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/dark_hex.md) | 6,072,917 | 9,469,697,760 | 5.3 s |
+| [`dark_hex3_abrupt`](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/dark_hex.md) | 27,325,277 | 14,663,760,672 | 9.1 s |
 
-Information sets are counted for both seats. Times are per call on an NVIDIA
-RTX 3080 Ti Laptop GPU, after the first call for a game; see
+Information sets are counted for both seats. Times are per call on one
+NVIDIA RTX A6000, the GPU for every measurement in these docs, after the
+first call for a game; see
 [Evaluation](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/evaluation.md#how-its-computed).
 
 ## Install
