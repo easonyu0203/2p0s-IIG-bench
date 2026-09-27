@@ -69,20 +69,5 @@ game object reuse it.
     point cards and each seat's order of bids. Each call sums over all of
     them in one vectorized pass, without a traversal.
 
-The [README](../README.md) lists the time of a later call for each game. The
-first call also builds the sequence form, which adds 1.6 to 12 s.
-
-Evaluation assumes an accelerator with at least 24 GB of memory. The largest
-game, `dark_hex3_abrupt`, uses about 7 GiB, and the policy sees 2^20
-information sets at a time, so a large policy network needs the rest.
-
-For comparison, [exp-a-spiel](https://github.com/gabrfarina/exp-a-spiel), a
-C++ implementation, takes about 80 s per call on 20 CPU threads for the
-classical phantom games, and more than 30 GB of memory for the abrupt ones.
-
-> [!NOTE]
-> Evaluate phantom games on an accelerator. On CPU, a single traversal of
-> their tree takes more than 40 minutes. Goofspiel takes 5 s per call on CPU.
-
-The results agree with OpenSpiel on poker games and on Goofspiel with 3 and
-4 cards, and with exp-a-spiel on classical phantom games, to within 10^-5.
+For per-game first-call and later-call times, see
+[Benchmark results](benchmarks.md#exact-exploitability-evaluation).

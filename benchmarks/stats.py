@@ -1,16 +1,17 @@
 """Measures the statistics that the docs list for each game.
 
-For each game, prints its numbers for the tables in README.md and
-docs/games/README.md: its information sets, the time of an exploitability
-call, and how many million steps per second it runs. The docs report
-numbers from one NVIDIA RTX A6000; on CPU, exploitability of phantom games
-takes more than 40 minutes. For example, with CUDA 13:
+For each game, prints its numbers for the tables in docs/benchmarks.md: its
+information sets, the time of the first and of a later exploitability call,
+and how many million steps per second it runs.
+Times and speeds are the mean ± standard deviation of 10 runs. The docs
+report numbers from one NVIDIA RTX A6000:
 
-    uv run --with "jax[cuda13]" python benchmarks/stats.py [GAME ...]
+    uv run --with benchmarks/stats.py [GAME ...]
 
 Without arguments, it measures every game.
 """
 
+import statistics
 import sys
 import time
 
@@ -19,24 +20,12 @@ import jax.numpy as jnp
 
 import nashbench
 
-BATCH_SIZES = (1, 1024, 16384, 262144)
-
-
-def random_actions(key, legal_action_mask):
-    """Returns a uniformly random legal action for each row of the mask."""
-    # Unrolled, Gumbel-max sampling fuses into one kernel; with two actions,
-    # jax.random.categorical is slower than a step of Kuhn poker.
-    noise = jax.random.gumbel(key, legal_action_mask.shape)
-    score = jnp.where(legal_action_mask, noise, -jnp.inf)
-    best, action = score[..., 0], jnp.zeros(score.shape[:-1], jnp.int32)
-    for a in range(1, score.shape[-1]):
-        action = jnp.where(score[..., a] > best, a, action)
-        best = jnp.maximum(best, score[..., a])
-    return action
+BATCH_SIZES = (1, 64, 1024, 16384)
+NUM_RUNS = 10
 
 
 def steps_per_second(game, batch_size):
-    """Returns how many steps per second a batch of games runs."""
+    """Returns how many steps per second a batch of games runs, per run."""
     num_steps = max(100, min(2000, 2**22 // batch_size))
     step = jax.vmap(nashbench.auto_reset(game))
 
@@ -47,7 +36,8 @@ def steps_per_second(game, batch_size):
 
         def body(carry, key):
             state, timestep = carry
-            action = random_actions(key, timestep.legal_action_mask)
+            mask = timestep.legal_action_mask
+            action = jax.random.categorical(key, jnp.where(mask, 0.0, -jnp.inf))
             return step(state, action), None
 
         keys = jax.random.split(key, num_steps)
@@ -56,18 +46,28 @@ def steps_per_second(game, batch_size):
         return sum(x.sum() for x in jax.tree.leaves(timestep))
 
     run(jax.random.key(0)).block_until_ready()  # Compiles.
-    seconds = min(_seconds(run, jax.random.key(i)) for i in range(1, 6))
-    return batch_size * num_steps / seconds
+    return [
+        batch_size * num_steps / _seconds(run, jax.random.key(seed))
+        for seed in range(1, NUM_RUNS + 1)
+    ]
 
 
-def exploitability_seconds(game):
-    """Returns the time of the first exploitability call and of a later one."""
-    policy = nashbench.uniform_random
-    times = [_seconds(nashbench.exploitability, game, policy) for _ in range(3)]
-    # Calls of milliseconds vary with host dispatch, so repeat them for 1 s.
-    while sum(times[1:]) < 1:
-        times.append(_seconds(nashbench.exploitability, game, policy))
-    return times[0], min(times[1:])
+def first_call_seconds(name):
+    """Returns the time of the first exploitability call for a game."""
+    # A new game and empty caches make the call build the sequence form and
+    # compile, as in a new process.
+    jax.clear_caches()
+    game = nashbench.make(name)
+    return _seconds(nashbench.exploitability, game, nashbench.uniform_random)
+
+
+def later_call_seconds(game):
+    """Returns the times of exploitability calls after the first."""
+    nashbench.exploitability(game, nashbench.uniform_random)  # Builds.
+    return [
+        _seconds(nashbench.exploitability, game, nashbench.uniform_random)
+        for _ in range(NUM_RUNS)
+    ]
 
 
 def _seconds(fn, *args):
@@ -81,10 +81,14 @@ def _round(x):
     return f"{float(f'{x:.2g}'):g}"
 
 
+def _mean_std(xs):
+    return f"{_round(statistics.mean(xs))} ± {_round(statistics.stdev(xs))}"
+
+
 def _duration(seconds):
-    if seconds < 0.1:
-        return f"{_round(seconds * 1e3)} ms"
-    return f"{_round(seconds)} s"
+    if statistics.mean(seconds) < 0.1:
+        return f"{_mean_std([s * 1e3 for s in seconds])} ms"
+    return f"{_mean_std(seconds)} s"
 
 
 def main(names):
@@ -93,15 +97,17 @@ def main(names):
     for name in names:
         game = nashbench.make(name)
         rates = [steps_per_second(game, b) for b in BATCH_SIZES]
-        first, later = exploitability_seconds(game)
-        speed = " | ".join(_round(r / 1e6) for r in rates[1:])
+        first = [first_call_seconds(name) for _ in range(NUM_RUNS)]
+        later = later_call_seconds(game)
+        speed = " | ".join(
+            _mean_std([r / 1e6 for r in rate]) for rate in rates[1:]
+        )
+        per_step = _mean_std([1e6 / r for r in rates[0]])
         print(name)
         print(f"  Information sets: {game.sequence_form.parent.size:,}")
-        print(
-            f"  Exploitability: {_duration(later)} per call, "
-            f"{_duration(first)} for the first"
-        )
-        print(f"  One game: {_round(1e6 / rates[0])} microseconds per step")
+        print(f"  Exploitability, first call: {_duration(first)}")
+        print(f"  Exploitability, later call: {_duration(later)}")
+        print(f"  One game: {per_step} microseconds per step")
         print(f"  Speed table row: | `{name}` | {speed} |\n")
 
 

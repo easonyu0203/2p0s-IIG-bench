@@ -1,8 +1,6 @@
 # Conventions
 
-Multi-agent reinforcement learning has no standard interface for
-two-player zero-sum games. This page states the conventions and assumptions
-that nashbench follows.
+This page states the conventions and assumptions that nashbench follows.
 
 ## Players and seats
 
@@ -52,12 +50,8 @@ player.
 | `current_player` | `[]` | Always |
 
 `current_player` is the player to act: 0, 1, or `nashbench.BOTH` if both
-act at once. Entries that the table doesn't define are unspecified, so don't
-use them. `step` ignores the action of a player who doesn't act, and the
+act at once. `step` ignores the action of a player who doesn't act, and the
 outcome of an illegal action is unspecified.
-
-Most games are turn-based. In Goofspiel, both seats bid at once, and
-`current_player` is `nashbench.BOTH` at every step.
 
 > [!NOTE]
 > In a turn-based game, if you run the policy for both players at every step,
@@ -81,7 +75,7 @@ As a result, observations have these properties:
 -   **Perfect recall.** An observation encodes everything the seat has seen,
     so a policy doesn't need memory.
 
-Each [game's page](games/README.md) lists what every dimension means.
+Each [game's page](games/index.md) lists what every dimension means.
 
 ## Actions
 

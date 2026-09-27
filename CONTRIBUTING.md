@@ -71,10 +71,11 @@ returns, and information-state tensors. To add one:
 1.  Register the game in `src/nashbench/games/__init__.py`.
 1.  Add `docs/games/<name>.md`, which lists the actions and what each
     observation dimension means. Add the game to the tables in
-    [docs/games/README.md](docs/games/README.md) and [README.md](README.md).
-    [`benchmarks/stats.py`](benchmarks/stats.py) measures their numbers,
-    except the number of terminal histories, which you count. Run it on an
-    NVIDIA RTX A6000, the GPU for every measurement in the docs.
+    [docs/games/index.md](docs/games/index.md) and
+    [docs/benchmarks.md](docs/benchmarks.md). [`benchmarks/stats.py`](benchmarks/stats.py)
+    measures their numbers, except the number of terminal histories, which
+    you count. Run it on an NVIDIA RTX A6000, the GPU for every measurement
+    in the docs.
 1.  Add the game to `GAMES` in `tests/openspiel_test.py`. If the game has
     chance events, set them in `_replay`, and to check every history, list
     its deals in `DEALS`. The tests then compare the game with OpenSpiel at

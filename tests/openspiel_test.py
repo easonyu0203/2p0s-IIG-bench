@@ -117,7 +117,7 @@ def _information_state(state, player):
     info = state.information_state_string(player)
     if state.get_game().get_type().short_name == "dark_hex":
         # Drop the total move count, which only the string reveals (see
-        # docs/games/dark_hex.md).
+        # docs/games/dark-hex.md).
         lines = info.split("\n")
         info = "\n".join(lines[:3] + lines[4:])
     return player, info
