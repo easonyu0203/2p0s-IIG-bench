@@ -62,9 +62,10 @@ outcome of an illegal action is unspecified.
 ## Observations
 
 A seat's observation is a one-hot encoding of the seat followed by
-OpenSpiel's information-state tensor for that seat. In Kuhn and Leduc poker,
-OpenSpiel's tensor already starts with the seat, so the observation equals
-OpenSpiel's tensor.
+OpenSpiel's information-state tensor for that seat. In Kuhn poker, Leduc
+poker, and Liar's Dice, OpenSpiel's tensor already starts with the seat, so
+the observation equals OpenSpiel's tensor. OpenSpiel's Oshi-Zumo has no such
+tensor, so nashbench [defines one](games/oshi-zumo.md#observation).
 
 As a result, observations have these properties:
 

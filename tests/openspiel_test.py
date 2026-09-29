@@ -39,6 +39,22 @@ GAMES = {
         )
         for k in range(3, 7)
     },
+    **{
+        f"liars_dice{n}x{s}": (
+            "liars_dice",
+            {"numdice": n, "dice_sides": s},
+            f"liars_dice(numdice={n},dice_sides={s})",
+        )
+        for n, s in [(1, 3), (2, 2), (1, 6), (2, 5)]
+    },
+    **{
+        f"oshi_zumo{c}x{s}": (
+            "oshi_zumo",
+            {"coins": c, "size": s},
+            f"oshi_zumo(coins={c},size={s},min_bid=1)",
+        )
+        for c, s in [(5, 3), (6, 1), (13, 3)]
+    },
 }
 # Every deal (chance outcomes, in dealing order) of games checked on every
 # history.
@@ -47,6 +63,10 @@ DEALS = {
     "leduc_poker": list(itertools.permutations(range(6), 3)),
     "goofspiel3": list(itertools.permutations(range(3))),
     "goofspiel4": list(itertools.permutations(range(4))),
+    "liars_dice1x3": list(itertools.product(range(3), repeat=2)),
+    "liars_dice2x2": list(itertools.product(range(2), repeat=4)),
+    "oshi_zumo5x3": [()],
+    "oshi_zumo6x1": [()],
 }
 NUM_RANDOM_HISTORIES = 3000
 
@@ -113,6 +133,22 @@ def _openspiel_states(os_game, chance, actions):
         _apply(state, next(actions))
 
 
+def _information_state_tensor(state, seat):
+    """Returns OpenSpiel's information-state tensor of `seat`.
+
+    Oshi-Zumo has none; nashbench appends every bid so far to its observation
+    tensor.
+    """
+    game = state.get_game()
+    if game.get_type().short_name != "oshi_zumo":
+        return np.ravel(state.information_state_tensor(seat))
+    coins = game.get_parameters()["coins"]
+    bids = np.full((coins, 2), -1)
+    bids[: len(state.history()) // 2] = np.reshape(state.history(), (-1, 2))
+    one_hot = bids.T[..., None] == np.arange(coins + 1)
+    return np.concatenate([state.observation_tensor(seat), one_hot.ravel()])
+
+
 def _information_state(state, player):
     info = state.information_state_string(player)
     if state.get_game().get_type().short_name == "dark_hex":
@@ -151,7 +187,7 @@ def _nodes(test_id):
                 continue
             expected["current_seat"][i, t] = state.current_player()
             for seat in range(2):
-                tensor = np.ravel(state.information_state_tensor(seat))
+                tensor = _information_state_tensor(state, seat)
                 # nashbench prepends the seat unless OpenSpiel already does.
                 if tensor.size < expected["observation"][i, t, seat].size:
                     tensor = np.concatenate([np.eye(2)[seat], tensor])
@@ -192,6 +228,9 @@ def _replay(game, name, chance, actions):
         last = k * (k - 1) // 2 - chance[: k - 1].sum()
         cards = jnp.append(chance[: k - 1], last)
         state = dataclasses.replace(state, point_cards=cards)
+    elif name == "liars_dice":
+        dice = jnp.sort(chance.reshape(2, -1))
+        state = dataclasses.replace(state, dice=dice)
 
     def step(state, action):
         seats = jnp.arange(2)

@@ -17,6 +17,8 @@ object and its compiled computation.
 | [`kuhn_poker`](games/kuhn-poker.md) | 12 | 30 | 1.3 ± 0.081 s | 1.4 ± 0.23 ms |
 | [`leduc_poker`](games/leduc-poker.md) | 936 | 5,520 | 1.8 ± 0.081 s | 1.9 ± 0.17 ms |
 | [`goofspiel`](games/goofspiel.md) | 23,050,572 | 373,248,000 | 2.7 ± 0.13 s | 87 ± 1.1 ms |
+| [`liars_dice`](games/liars-dice.md) | 15,728,640 | 655,359,375 | 2.2 ± 0.45 s | 60 ± 2.9 ms |
+| [`oshi_zumo`](games/oshi-zumo.md) | 31,502,916 | 15,905,730 | 2.5 ± 0.15 s | 0.18 ± 0.0002 s |
 | [`phantom_ttt`](games/phantom-tic-tac-toe.md) | 5,990,669 | 9,829,101,024 | 14 ± 0.42 s | 5.5 ± 0.013 s |
 | [`phantom_ttt_abrupt`](games/phantom-tic-tac-toe.md) | 23,310,269 | 13,578,403,440 | 19 ± 0.75 s | 8.2 ± 0.017 s |
 | [`dark_hex3`](games/dark-hex.md) | 6,072,917 | 9,469,697,760 | 14 ± 0.36 s | 5.4 ± 0.018 s |
@@ -38,6 +40,8 @@ observations.
 | `kuhn_poker` | 3.7 ± 0.027 | 54 ± 2.3 | 430 ± 14 |
 | `leduc_poker` | 2.5 ± 0.017 | 37 ± 0.27 | 400 ± 10 |
 | `goofspiel` | 3.2 ± 0.012 | 44 ± 0.25 | 210 ± 7.6 |
+| `liars_dice` | 2.8 ± 0.0011 | 42 ± 0.04 | 340 ± 0.61 |
+| `oshi_zumo` | 3.7 ± 0.0035 | 39 ± 0.032 | 130 ± 0.25 |
 | `phantom_ttt` | 3 ± 0.0035 | 44 ± 0.035 | 240 ± 0.81 |
 | `phantom_ttt_abrupt` | 3.1 ± 0.042 | 44 ± 0.014 | 240 ± 12 |
 | `dark_hex3` | 3 ± 0.0025 | 45 ± 0.022 | 210 ± 0.24 |
@@ -49,4 +53,6 @@ observations.
 with JAX 0.11 on an NVIDIA RTX A6000 GPU. It compiles each simulation
 workload before timing it. For exact evaluation, a first-call run starts with
 empty JAX caches and a new game object; later-call runs reuse a game object
-after one warmup evaluation.
+after one warmup evaluation. Exact evaluation of every game peaks below
+8 GiB of GPU memory, including a two-layer policy network, so it also runs on
+GPUs with 24 GB.

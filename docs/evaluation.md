@@ -68,6 +68,12 @@ game object reuse it.
 -   **Goofspiel**'s tree is regular: a terminal history is an order of the
     point cards and each seat's order of bids. Each call sums over all of
     them in one vectorized pass, without a traversal.
+-   **Liar's Dice**'s tree is regular too: an information set is a seat's
+    dice and the set of bids so far. Each call sums over all terminal
+    histories with one small matrix product per bid.
+-   **Oshi-Zumo**'s bids are public, so each history is an information set
+    of both seats. The build enumerates the histories once, and each call
+    sums over the stored terminal histories.
 
 For per-game first-call and later-call times, see
 [Benchmark results](benchmarks.md#exact-exploitability-evaluation).
