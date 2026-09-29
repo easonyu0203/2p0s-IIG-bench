@@ -20,16 +20,19 @@ class GoofspielState(core.GameState):
         point_cards: `[num_cards]` int32 point cards, in the order they are
             revealed.
         bids: `[2, num_cards]` int32 card each seat bid at each turn, then -1s.
+        pending: `[]` int32 card seat 0 bid in this turn, hidden until seat 1
+            bids, or -1 if seat 0 is to bid.
         turn: `[]` int32 number of turns played.
     """
 
     point_cards: jax.Array
     bids: jax.Array
+    pending: jax.Array
     turn: jax.Array
 
 
 class Goofspiel(core.Game[GoofspielState]):
-    """Goofspiel. Both seats bid at once, and see only who won each turn."""
+    """Goofspiel. Seats bid in turn, and see only who won each turn."""
 
     def __init__(self, num_cards: int = 6):
         """Creates the game with cards 1 to `num_cards`."""
@@ -45,10 +48,11 @@ class Goofspiel(core.Game[GoofspielState]):
         point_cards = jnp.array(list(itertools.permutations(range(k))))
         n = len(point_cards)
         states = GoofspielState(
-            current_seat=jnp.full(n, core.BOTH, jnp.int32),
+            current_seat=jnp.zeros(n, jnp.int32),
             done=jnp.zeros(n, bool),
             point_cards=point_cards,
             bids=jnp.full((n, 2, k), -1, jnp.int32),
+            pending=jnp.full(n, -1, jnp.int32),
             turn=jnp.zeros(n, jnp.int32),
         )
         return states, jnp.full(n, 1 / n)
@@ -56,14 +60,27 @@ class Goofspiel(core.Game[GoofspielState]):
     @override
     def apply_action(self, state, action):
         k = self.num_cards
+        # Seat 0's bid is pending until seat 1 bids and ends the turn.
+        ends = state.current_seat == 1
         turns = jnp.arange(k)
-        bids = jnp.where(turns == state.turn, action[:, None], state.bids)
+        joint = jnp.stack([state.pending, action])
+        bids = jnp.where(
+            ends & (turns == state.turn), joint[:, None], state.bids
+        )
         # The last turn has a single legal bid per seat, so it plays itself.
         last = k * (k - 1) // 2 - bids[:, : k - 1].sum(1)
-        plays_itself = (state.turn == k - 2) & (turns == k - 1)
+        plays_itself = ends & (state.turn == k - 2) & (turns == k - 1)
         bids = jnp.where(plays_itself, last[:, None], bids)
         turn = jnp.where(state.turn == k - 2, k, state.turn + 1)
-        return dataclasses.replace(state, done=turn == k, bids=bids, turn=turn)
+        turn = jnp.where(ends, turn, state.turn)
+        return dataclasses.replace(
+            state,
+            current_seat=1 - state.current_seat,
+            done=turn == k,
+            bids=bids,
+            pending=jnp.where(ends, -1, action),
+            turn=turn,
+        )
 
     @override
     def observe(self, state, seat):

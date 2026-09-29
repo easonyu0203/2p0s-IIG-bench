@@ -18,13 +18,16 @@ class OshiZumoState(core.GameState):
     Attributes:
         bids: `[2, coins]` int32 coins each seat bid at each turn, then -1s.
             A game lasts at most `coins` turns.
+        pending: `[]` int32 coins seat 0 bid in this turn, hidden until seat 1
+            bids, or -1 if seat 0 is to bid.
     """
 
     bids: jax.Array
+    pending: jax.Array
 
 
 class OshiZumo(core.Game[OshiZumoState]):
-    """Oshi-Zumo. Both seats bid at once, then see both bids."""
+    """Oshi-Zumo. Seats bid in turn, then see both bids."""
 
     def __init__(self, coins: int = 13, size: int = 3):
         """Creates the game.
@@ -45,19 +48,28 @@ class OshiZumo(core.Game[OshiZumoState]):
     def initial_states(self):
         # No chance events: a single initial state.
         states = OshiZumoState(
-            current_seat=jnp.full(1, core.BOTH, jnp.int32),
+            current_seat=jnp.zeros(1, jnp.int32),
             done=jnp.zeros(1, bool),
             bids=jnp.full((1, 2, self.coins), -1, jnp.int32),
+            pending=jnp.full(1, -1, jnp.int32),
         )
         return states, jnp.ones(1)
 
     @override
     def apply_action(self, state, action):
+        # Seat 0's bid is pending until seat 1 bids and ends the turn.
+        ends = state.current_seat == 1
         turn = (state.bids[0] >= 0).sum()
+        joint = jnp.stack([state.pending, action])
         bids = jnp.where(
-            jnp.arange(self.coins) == turn, action[:, None], state.bids
+            ends & (jnp.arange(self.coins) == turn), joint[:, None], state.bids
         )
-        state = dataclasses.replace(state, bids=bids)
+        state = dataclasses.replace(
+            state,
+            current_seat=1 - state.current_seat,
+            bids=bids,
+            pending=jnp.where(ends, -1, action),
+        )
         position = self._position(state)
         done = (
             (position == 0)

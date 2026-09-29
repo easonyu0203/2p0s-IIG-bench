@@ -78,43 +78,27 @@ def enumerate_tree(game) -> SequenceForm:
             if not len(probs):
                 break
         seats = np.asarray(states.current_seat)
-        # Every seat that acts, both if the seat is negative, is at an
-        # information set. A seat that doesn't act plays action 0.
-        ids = np.full((len(seats), 2), -1)
-        options = []
-        for seat in range(2):
-            acting = (seats == seat) | (seats < 0)
-            obs = np.asarray(observe(states, np.full(len(seats), seat)))
-            mask = np.asarray(
-                legal_action_mask(states, np.full(len(seats), seat))
-            )
-            for i in np.nonzero(acting)[0]:
-                key = obs[i].tobytes()
-                if key not in infosets[seat]:
-                    infosets[seat][key] = len(parents[seat])
-                    parents[seat].append(sequences[i, seat])
-                    observations[seat].append(obs[i])
-                    masks[seat].append(mask[i])
-                ids[i, seat] = infosets[seat][key]
-                if parents[seat][ids[i, seat]] != sequences[i, seat]:
-                    raise ValueError(
-                        "Observations don't identify information states."
-                    )
-            options.append(
-                np.where(acting[:, None], mask, np.arange(mask.shape[1]) == 0)
-            )
-        node, action0, action1 = np.nonzero(
-            options[0][:, :, None] & options[1][:, None, :]
-        )
-        states = apply_action(
-            _take(states, node), np.stack([action0, action1], 1)
-        )
+        obs = np.asarray(observe(states, seats))
+        mask = np.asarray(legal_action_mask(states, seats))
+        ids = np.empty(len(seats), int)
+        for i, seat in enumerate(seats):
+            key = obs[i].tobytes()
+            if key not in infosets[seat]:
+                infosets[seat][key] = len(parents[seat])
+                parents[seat].append(sequences[i, seat])
+                observations[seat].append(obs[i])
+                masks[seat].append(mask[i])
+            ids[i] = infosets[seat][key]
+            if parents[seat][ids[i]] != sequences[i, seat]:
+                raise ValueError(
+                    "Observations don't identify information states."
+                )
+        node, action = np.nonzero(mask)
+        states = apply_action(_take(states, node), action)
         sequences = sequences[node]
-        for seat, action in enumerate((action0, action1)):
-            acted = ids[node, seat] >= 0
-            sequences[acted, seat] = (
-                ids[node[acted], seat] * options[seat].shape[1] + action[acted]
-            )
+        sequences[np.arange(len(node)), seats[node]] = (
+            ids[node] * mask.shape[1] + action
+        )
         probs = probs[node]
 
     return _from_tables(

@@ -7,6 +7,6 @@ source or with `help(nashbench.Game)`.
 | Module | Names |
 | --- | --- |
 | [`games`](../src/nashbench/games/__init__.py) | `make`, `REGISTRY` |
-| [`core`](../src/nashbench/core.py) | `Game`, `State`, `TimeStep`, `BOTH`, `auto_reset` |
+| [`core`](../src/nashbench/core.py) | `Game`, `State`, `TimeStep`, `auto_reset` |
 | [`policy`](../src/nashbench/policy.py) | `Policy`, `uniform_random` |
 | [`exploitability`](../src/nashbench/exploitability.py) | `exploitability` |

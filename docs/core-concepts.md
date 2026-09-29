@@ -31,33 +31,30 @@ both seats.
 
 ## Step API
 
-The API follows the functional style of JAX environments:
+The API follows the functional style of JAX environments. Players take turns:
+`step` takes the action of the player to act, so a policy runs once per step.
 
 ```python
 state, timestep = game.reset(key)
-state, timestep = game.step(state, action)  # action: [2] int32, one per player.
+state, timestep = game.step(state, action)  # action: [] int32.
 ```
 
-The API is *parallel*: `step` takes an action from each player, and each
-field of `TimeStep` with a leading axis of size 2 holds a value for each
-player.
-
-| Field | Shape | Defined for |
+| Field | Shape | Meaning |
 | --- | --- | --- |
-| `observation` | `[2, *observation_shape]` | The player to act, while not `done` |
-| `legal_action_mask` | `[2, num_actions]` | The player to act, while not `done` |
-| `reward` | `[2]` | Both players, always |
-| `done` | `[]` | Always |
-| `current_player` | `[]` | Always |
+| `observation` | `[*observation_shape]` | Observation of the player to act, while not `done` |
+| `legal_action_mask` | `[num_actions]` | Legal actions of the player to act, while not `done` |
+| `reward` | `[2]` | Reward of each player for the last step |
+| `done` | `[]` | Whether the episode has ended |
+| `current_player` | `[]` | Player to act: 0 or 1 |
 
-`current_player` is the player to act: 0, 1, or `nashbench.BOTH` if both
-act at once. `step` ignores the action of a player who doesn't act, and the
-outcome of an illegal action is unspecified.
+The outcome of an illegal action is unspecified.
 
-> [!NOTE]
-> In a turn-based game, if you run the policy for both players at every step,
-> as in the examples, half of that computation is for the player who isn't
-> acting. nashbench accepts this cost in exchange for one API for all games.
+### Simultaneous moves
+
+In Goofspiel and Oshi-Zumo, both seats move at once. nashbench takes these
+moves in turn: seat 0 moves first, then seat 1 moves without seeing seat 0's
+move, as in OpenSpiel's `turn_based_simultaneous_game`. Both versions have
+the same information states, so they have the same equilibria.
 
 ## Observations
 
@@ -89,11 +86,11 @@ Action IDs match OpenSpiel's. `legal_action_mask` marks the legal actions.
 across players and match OpenSpiel's returns. All current games give rewards
 only at the end.
 
-In a turn-based game, a player can receive a reward on a step where the
-other player acted. For example, in Kuhn poker, if you bet and your opponent
-folds, you win on your opponent's step. Credit assignment is up to you: when
-you compute player `p`'s return, sum `reward[p]` over all steps, not only
-over the steps where `p` acts.
+A player can receive a reward on a step where the other player acted. For
+example, in Kuhn poker, if you bet and your opponent folds, you win on your
+opponent's step. Credit assignment is up to you: when you compute player
+`p`'s return, sum `reward[p]` over all steps, not only over the steps where
+`p` acts.
 
 ## Chance events
 
@@ -126,16 +123,16 @@ import nashbench
 
 game = nashbench.make("leduc_poker")
 step = jax.jit(jax.vmap(nashbench.auto_reset(game)))
-policy = jax.jit(jax.vmap(jax.vmap(nashbench.uniform_random)))
+policy = jax.jit(jax.vmap(nashbench.uniform_random))
 
 key = jax.random.key(0)
 state, timestep = jax.vmap(game.reset)(jax.random.split(key, 128))
 for _ in range(100):
     key, subkey = jax.random.split(key)
     probs = policy(timestep.observation, timestep.legal_action_mask)
-    action = jax.random.categorical(subkey, jnp.log(probs))  # [128, 2]
+    action = jax.random.categorical(subkey, jnp.log(probs))  # [128]
     state, timestep = step(state, action)
 ```
 
-This code plays 128 games in parallel for 100 steps. The inner `jax.vmap`
-runs the policy for both players of each game.
+This code plays 128 games in parallel for 100 steps. In each game,
+`timestep.current_player` tells which player the policy acts for.

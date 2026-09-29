@@ -2,7 +2,8 @@
 
 Each test replays histories of the OpenSpiel game in nashbench, in seat
 space, and compares every node. Small games are checked on every history;
-larger games on random histories.
+larger games on random histories. Games with simultaneous moves are compared
+with OpenSpiel's turn-based version of them.
 """
 
 import collections
@@ -35,7 +36,10 @@ GAMES = {
         f"goofspiel{k}": (
             "goofspiel",
             {"num_cards": k},
-            f"goofspiel(players=2,num_cards={k},imp_info=true)",
+            (
+                "turn_based_simultaneous_game(game="
+                f"goofspiel(players=2,num_cards={k},imp_info=true))"
+            ),
         )
         for k in range(3, 7)
     },
@@ -51,7 +55,10 @@ GAMES = {
         f"oshi_zumo{c}x{s}": (
             "oshi_zumo",
             {"coins": c, "size": s},
-            f"oshi_zumo(coins={c},size={s},min_bid=1)",
+            (
+                "turn_based_simultaneous_game(game="
+                f"oshi_zumo(coins={c},size={s},min_bid=1))"
+            ),
         )
         for c, s in [(5, 3), (6, 1), (13, 3)]
     },
@@ -71,24 +78,8 @@ DEALS = {
 NUM_RANDOM_HISTORIES = 3000
 
 
-def _joint_actions(state):
-    """Returns the legal (seat 0, seat 1) actions; one repeats if turn-based."""
-    if state.is_simultaneous_node():
-        return list(
-            itertools.product(state.legal_actions(0), state.legal_actions(1))
-        )
-    return [(a, a) for a in state.legal_actions()]
-
-
-def _apply(state, actions):
-    if state.is_simultaneous_node():
-        state.apply_actions(list(actions))
-    else:
-        state.apply_action(actions[0])
-
-
 def _histories(test_id, os_game):
-    """Returns a list of (chance outcomes, joint actions) histories."""
+    """Returns a list of (chance outcomes, actions) histories."""
     if test_id not in DEALS:
         rng = random.Random(0)
         histories = []
@@ -99,8 +90,8 @@ def _histories(test_id, os_game):
                     chance.append(rng.choice(state.legal_actions()))
                     state.apply_action(chance[-1])
                 else:
-                    actions.append(rng.choice(_joint_actions(state)))
-                    _apply(state, actions[-1])
+                    actions.append(rng.choice(state.legal_actions()))
+                    state.apply_action(actions[-1])
             histories.append((tuple(chance), tuple(actions)))
         return histories
 
@@ -111,10 +102,9 @@ def _histories(test_id, os_game):
         elif state.is_terminal():
             yield deal, actions
         else:
-            for joint in _joint_actions(state):
-                child = state.clone()
-                _apply(child, joint)
-                yield from extend(deal, child, (*actions, joint), num_dealt)
+            for action in state.legal_actions():
+                child = state.child(action)
+                yield from extend(deal, child, (*actions, action), num_dealt)
 
     root = os_game.new_initial_state()
     return [h for deal in DEALS[test_id] for h in extend(deal, root, ())]
@@ -130,23 +120,27 @@ def _openspiel_states(os_game, chance, actions):
         yield state
         if state.is_terminal():
             return
-        _apply(state, next(actions))
+        state.apply_action(next(actions))
 
 
-def _information_state_tensor(state, seat):
+def _information_state_tensor(game, name, state, seat):
     """Returns OpenSpiel's information-state tensor of `seat`.
 
-    Oshi-Zumo has none; nashbench appends every bid so far to its observation
-    tensor.
+    Turn-based versions of games with simultaneous moves start their tensors
+    with the seat to act, which nashbench omits. Oshi-Zumo has no
+    information-state tensor; nashbench appends every bid of finished turns to
+    its observation tensor.
     """
-    game = state.get_game()
-    if game.get_type().short_name != "oshi_zumo":
+    if name == "goofspiel":
+        return np.ravel(state.information_state_tensor(seat))[2:]
+    if name != "oshi_zumo":
         return np.ravel(state.information_state_tensor(seat))
-    coins = game.get_parameters()["coins"]
-    bids = np.full((coins, 2), -1)
-    bids[: len(state.history()) // 2] = np.reshape(state.history(), (-1, 2))
-    one_hot = bids.T[..., None] == np.arange(coins + 1)
-    return np.concatenate([state.observation_tensor(seat), one_hot.ravel()])
+    history = state.history()
+    num_turns = len(history) // 2
+    bids = np.full((game.coins, 2), -1)
+    bids[:num_turns] = np.reshape(history[: 2 * num_turns], (-1, 2))
+    one_hot = bids.T[..., None] == np.arange(game.coins + 1)
+    return np.concatenate([state.observation_tensor(seat)[2:], one_hot.ravel()])
 
 
 def _information_state(state, player):
@@ -187,24 +181,21 @@ def _nodes(test_id):
                 continue
             expected["current_seat"][i, t] = state.current_player()
             for seat in range(2):
-                tensor = _information_state_tensor(state, seat)
+                tensor = _information_state_tensor(game, name, state, seat)
                 # nashbench prepends the seat unless OpenSpiel already does.
                 if tensor.size < expected["observation"][i, t, seat].size:
                     tensor = np.concatenate([np.eye(2)[seat], tensor])
                 expected["observation"][i, t, seat] = tensor
-                if state.current_player() in (
-                    seat,
-                    pyspiel.PlayerId.SIMULTANEOUS,
-                ):
+                if state.current_player() == seat:
                     acting[i, t, seat] = True
-                    legal = state.legal_actions(seat)
+                    legal = state.legal_actions()
                     expected["legal_action_mask"][i, t, seat, legal] = True
                     information_state[i, t, seat] = _information_state(
                         state, seat
                     )
 
     chance = jnp.array([c for c, _ in histories], jnp.int32)
-    actions = np.zeros((*shape, 2), np.int32)  # One padding action at the end.
+    actions = np.zeros(shape, np.int32)  # One padding action at the end.
     for i, (_, a) in enumerate(histories):
         actions[i, : len(a)] = a
     replay = functools.partial(_replay, game, name)

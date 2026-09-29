@@ -59,7 +59,7 @@ class LeducPoker(core.Game[LeducState]):
     @override
     def apply_action(self, state, action):
         seat = state.current_seat
-        a = action[seat]
+        a = action
         # Calling matches the highest ante; raising then adds 2 or 4 chips.
         raise_size = jnp.where(state.round == 0, 2, 4)
         stakes = jnp.maximum(*state.ante) + jnp.where(a == RAISE, raise_size, 0)

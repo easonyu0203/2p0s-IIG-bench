@@ -60,7 +60,7 @@ class LiarsDice(core.Game[LiarsDiceState]):
     @override
     def apply_action(self, state, action):
         seat = state.current_seat
-        bid = action[seat]
+        bid = action
         liar = bid == self.num_bids
         return dataclasses.replace(
             state,

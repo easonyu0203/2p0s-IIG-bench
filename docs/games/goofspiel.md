@@ -11,9 +11,10 @@ Each seat holds bid cards worth 1 to `k`, and a deck of point cards worth 1 to
 a card at the same time. The higher bid wins the point card; equal bids
 discard it. Seats see who won each turn, but not the opponent's bids. After
 `k` turns, the seat with more points wins. As in OpenSpiel, the last turn has
-a single legal bid and plays itself, so a game has `k - 1` decisions.
+a single legal bid and plays itself, so each seat makes `k - 1` decisions.
 
-Both seats act at every step: `current_player` is `nashbench.BOTH`.
+Seat 0 bids first, and seat 1 bids without seeing seat 0's bid. See
+[Simultaneous moves](../core-concepts.md#simultaneous-moves).
 
 > [!NOTE]
 > OpenSpiel's default Goofspiel, with `imp_info=false`, reveals both bids after

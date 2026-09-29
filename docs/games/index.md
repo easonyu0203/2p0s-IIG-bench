@@ -2,7 +2,9 @@
 
 Each game replicates an OpenSpiel game. Pass its name to `nashbench.make`.
 To load the OpenSpiel equivalent, pass the OpenSpiel game string to
-`pyspiel.load_game`.
+`pyspiel.load_game`. For Goofspiel and Oshi-Zumo, whose seats move at once,
+wrap it in `turn_based_simultaneous_game(game=...)`, because nashbench
+[takes their moves in turn](../core-concepts.md#simultaneous-moves).
 
 | Name | OpenSpiel game | Actions | Observation size |
 | --- | --- | --- | --- |

@@ -15,7 +15,8 @@ position 0. If both seats run out of coins first, the seat that pushed the
 wrestler past the middle wins. Seats see both bids after each turn, so the
 only hidden information is the opponent's current bid.
 
-Both seats act at every step: `current_player` is `nashbench.BOTH`.
+Seat 0 bids first, and seat 1 bids without seeing seat 0's bid. See
+[Simultaneous moves](../core-concepts.md#simultaneous-moves).
 
 > [!NOTE]
 > OpenSpiel's default Oshi-Zumo allows bids of 0, so a game can last up to

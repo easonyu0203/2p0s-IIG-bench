@@ -59,7 +59,9 @@ returns, and information-state tensors. To add one:
 1.  Create `src/nashbench/games/<name>.py` with a subclass of `core.Game`.
     Implement the rules for seats, where seat `i` is OpenSpiel's player `i`;
     `Game.reset` and `Game.step` handle players and the seat shuffle. For the
-    simplest example, see `kuhn_poker.py`.
+    simplest example, see `kuhn_poker.py`. If both seats move at once, take
+    their moves in turn and hide seat 0's move until seat 1 moves, as in
+    `goofspiel.py`.
 
     Games run in batches on accelerators, so write the rules with
     elementwise operations. For example, to set `x[i]` where `i` depends on
@@ -76,10 +78,11 @@ returns, and information-state tensors. To add one:
     measures their numbers, except the number of terminal histories, which
     you count. Run it on an NVIDIA RTX A6000, the GPU for every measurement
     in the docs.
-1.  Add the game to `GAMES` in `tests/openspiel_test.py`. If the game has
-    chance events, set them in `_replay`, and to check every history, list
-    its deals in `DEALS`. The tests then compare the game with OpenSpiel at
-    every node.
+1.  Add the game to `GAMES` in `tests/openspiel_test.py`, wrapping games
+    whose seats move at once in `turn_based_simultaneous_game(game=...)`. If
+    the game has chance events, set them in `_replay`, and to check every
+    history, list its deals in `DEALS`. The tests then compare the game with
+    OpenSpiel at every node.
 
 `exploitability` works for a new game without extra code if the game tree
 fits in memory: `Game.sequence_form` enumerates it. For larger trees,

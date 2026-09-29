@@ -11,10 +11,6 @@ import jax.numpy as jnp
 
 from nashbench import sequence_form as sequence_form_lib
 
-#: `TimeStep.current_player` when both players act at once. Equals OpenSpiel's
-#: kSimultaneousPlayerId.
-BOTH = -2
-
 
 @dataclass_transform(frozen_default=True)
 def pytree_dataclass[T](cls: type[T]) -> type[T]:
@@ -28,17 +24,15 @@ def pytree_dataclass[T](cls: type[T]) -> type[T]:
 class TimeStep:
     """What the players see after `Game.reset` or `Game.step`.
 
-    Arrays with a leading axis of size 2 are indexed by player.
-    `observation` and `legal_action_mask` are defined only for the player to
-    act and only while `done` is false; other entries are unspecified.
-    `reward` is always defined for both players.
+    `observation` and `legal_action_mask` belong to the player to act and are
+    defined only while `done` is false.
 
     Attributes:
-        observation: `[2, *observation_shape]` float32 information states.
-        legal_action_mask: `[2, num_actions]` bool.
-        reward: `[2]` float32 reward of the last step.
+        observation: `[*observation_shape]` float32 information state.
+        legal_action_mask: `[num_actions]` bool.
+        reward: `[2]` float32 reward of each player for the last step.
         done: `[]` bool, true once the episode has ended.
-        current_player: `[]` int32 player to act: 0, 1, or `BOTH`.
+        current_player: `[]` int32 player to act: 0 or 1.
     """
 
     observation: jax.Array
@@ -53,7 +47,7 @@ class GameState:
     """Base class for the state of a game's rules, indexed by seat.
 
     Attributes:
-        current_seat: `[]` int32 seat to act: 0, 1, or `BOTH`.
+        current_seat: `[]` int32 seat to act: 0 or 1.
         done: `[]` bool, true once the game has ended.
     """
 
@@ -77,11 +71,16 @@ class State[S: GameState]:
 
 
 class Game[S: GameState](abc.ABC):
-    """A two-player zero-sum game.
+    """A two-player zero-sum game, where players take turns.
 
     Players interact with a game through `reset` and `step`. At every reset,
     a fair coin assigns the two players to the game's two seats, where seat
     `i` is OpenSpiel's player `i`.
+
+    In games where both seats move at once, seat 0 moves first, and seat 1
+    moves without seeing seat 0's move, as in OpenSpiel's
+    `turn_based_simultaneous_game`. The two games have the same information
+    states, so they have the same equilibria.
 
     To add a game, subclass `Game`, set `num_actions` and `observation_shape`,
     and implement the rules: `initial_states`, `apply_action`, `observe`,
@@ -108,8 +107,7 @@ class Game[S: GameState](abc.ABC):
 
         Args:
             state: The current state.
-            action: `[2]` int32 action of each player. Actions of players who
-                are not acting are ignored.
+            action: `[]` int32 action of the player to act.
 
         Returns:
             The next state and timestep. Once the episode is done, `step`
@@ -142,26 +140,22 @@ class Game[S: GameState](abc.ABC):
     ) -> tuple[State[S], jax.Array]:
         """Returns the next state and the `[2]` reward of each player."""
         # A permutation of two elements is its own inverse, so indexing with
-        # `seat` maps player-indexed arrays to seat-indexed ones and back.
+        # `seat` maps seat-indexed arrays to player-indexed ones.
         old = state.game_state
-        new = self.apply_action(old, action[state.seat])
+        new = self.apply_action(old, action)
         new = jax.tree.map(lambda o, n: jnp.where(old.done, o, n), old, new)
         reward = (self.returns(new) - self.returns(old))[state.seat]
         return dataclasses.replace(state, game_state=new), reward
 
     def _timestep(self, state: State[S], reward: jax.Array) -> TimeStep:
         game_state = state.game_state
-        observe = jax.vmap(self.observe, in_axes=(None, 0))
-        legal_action_mask = jax.vmap(self.legal_action_mask, in_axes=(None, 0))
-        current_seat = game_state.current_seat
+        seat = game_state.current_seat
         return TimeStep(
-            observation=observe(game_state, state.seat),
-            legal_action_mask=legal_action_mask(game_state, state.seat),
+            observation=self.observe(game_state, seat),
+            legal_action_mask=self.legal_action_mask(game_state, seat),
             reward=reward.astype(jnp.float32),
             done=game_state.done,
-            current_player=jnp.where(
-                current_seat == BOTH, BOTH, state.seat[current_seat]
-            ),
+            current_player=state.seat[seat],
         )
 
     @abc.abstractmethod
@@ -174,12 +168,11 @@ class Game[S: GameState](abc.ABC):
 
     @abc.abstractmethod
     def apply_action(self, state: S, action: jax.Array) -> S:
-        """Returns the state after the seats take `action`.
+        """Returns the state after the seat to act takes `action`.
 
         Args:
             state: The current state. If it is done, the result is discarded.
-            action: `[2]` int32 action of each seat. Turn-based games read
-                `action[state.current_seat]`.
+            action: `[]` int32 action of `state.current_seat`.
         """
 
     @abc.abstractmethod

@@ -53,8 +53,8 @@ key = jax.random.key(1)
 state, timestep = game.reset(key)
 while not timestep.done:
     key, subkey = jax.random.split(key)
-    probs = jax.vmap(policy)(timestep.observation, timestep.legal_action_mask)
-    action = jax.random.categorical(subkey, jnp.log(probs))  # One per player.
+    probs = policy(timestep.observation, timestep.legal_action_mask)
+    action = jax.random.categorical(subkey, jnp.log(probs))
     state, timestep = game.step(state, action)
 print(timestep.reward)  # [2]: sums to zero.
 

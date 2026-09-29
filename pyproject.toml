@@ -1,6 +1,6 @@
 [project]
 name = "nashbench"
-version = "0.1.0"
+version = "0.2.0"
 description = "JAX two-player zero-sum imperfect-information games for benchmarking Nash equilibrium solvers."
 readme = "README.md"
 license = "Apache-2.0"

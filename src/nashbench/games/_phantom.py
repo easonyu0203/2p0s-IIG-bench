@@ -71,7 +71,7 @@ class PhantomGame(core.Game[PhantomState]):
     @override
     def apply_action(self, state, action):
         seat = state.current_seat
-        cell = action[seat]
+        cell = action
         cells = jnp.arange(NUM_CELLS)
         placed = state.board[cell] < 0
         board = jnp.where((cells == cell) & placed, seat, state.board)

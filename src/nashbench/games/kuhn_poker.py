@@ -46,11 +46,7 @@ class KuhnPoker(core.Game[KuhnState]):
     @override
     def apply_action(self, state, action):
         num_actions = (state.history >= 0).sum()
-        history = jnp.where(
-            jnp.arange(3) == num_actions,
-            action[state.current_seat],
-            state.history,
-        )
+        history = jnp.where(jnp.arange(3) == num_actions, action, state.history)
         # Only pass-bet continues after two actions.
         pass_bet = (history[0] == PASS) & (history[1] == BET)
         return dataclasses.replace(

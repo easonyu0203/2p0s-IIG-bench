@@ -2,7 +2,6 @@
 
 import importlib.metadata
 
-from nashbench.core import BOTH
 from nashbench.core import Game
 from nashbench.core import State
 from nashbench.core import TimeStep
@@ -16,7 +15,6 @@ from nashbench.policy import uniform_random
 __version__ = importlib.metadata.version("nashbench")
 
 __all__ = [
-    "BOTH",
     "REGISTRY",
     "Game",
     "Policy",
