@@ -1,8 +1,11 @@
 """The policy interface that evaluation expects."""
 
+from collections.abc import Sequence
 from typing import Protocol
 
 import jax
+import numpy as np
+import numpy.typing as npt
 
 
 class Policy(Protocol):
@@ -28,6 +31,46 @@ class Policy(Protocol):
             actions.
         """
         ...
+
+
+class Mixture:
+    """Policies that a seat samples from, once per episode.
+
+    At the start of each episode, a seat samples one policy, with probability
+    proportional to its weight, and plays it for the whole episode. Seats
+    sample independently and privately. A policy can itself be a mixture.
+
+    Attributes:
+        policies: The policies, as a tuple.
+        weights: `[len(policies)]` float64 weights, divided by their sum.
+    """
+
+    def __init__(
+        self,
+        policies: Sequence["Policy | Mixture"],
+        weights: npt.ArrayLike | None = None,
+    ):
+        """Initializes the mixture.
+
+        Args:
+            policies: The policies.
+            weights: `[len(policies)]` finite, nonnegative weights with a
+                positive sum. Defaults to equal weights.
+        """
+        self.policies = tuple(policies)
+        n = len(self.policies)
+        weights = np.asarray(np.ones(n) if weights is None else weights, float)
+        if not (
+            weights.shape == (n,)
+            and np.isfinite(weights).all()
+            and (weights >= 0).all()
+            and weights.sum() > 0
+        ):
+            raise ValueError(
+                f"weights must be {n} finite, nonnegative numbers with a "
+                f"positive sum, not {weights}."
+            )
+        self.weights = weights / weights.sum()
 
 
 def uniform_random(

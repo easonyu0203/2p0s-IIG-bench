@@ -29,6 +29,9 @@ When player 0 and player 1 use different parameters, for example a learner
 and a past version of itself, the seat shuffle still trains the learner on
 both seats.
 
+To evaluate a separate strategy for each seat, or a population of policies,
+see [Evaluation](evaluation.md#mixtures-and-separate-seats).
+
 ## Step API
 
 The API follows the functional style of JAX environments. Players take turns:

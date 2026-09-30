@@ -12,6 +12,7 @@ compute.
     actions to action probabilities, which plays both seats.
 -   **Exact exploitability** of that policy, from milliseconds after warmup
     for poker to under 10 seconds on a GPU for games with 10^10 histories.
+    It also evaluates a policy per seat, and populations of policies.
 
 ## Benchmarks
 
@@ -70,8 +71,8 @@ parallel.
 
 -   [Core concepts](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/core-concepts.md): players, seats, the step API,
     observations, and rewards.
--   [Evaluation](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/evaluation.md): the policy interface and how
-    exploitability is computed.
+-   [Evaluation](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/evaluation.md): the policy interface, mixtures,
+    and how exploitability is computed.
 -   [Games](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/games/index.md): the rules, actions, and observation
     layout of each game.
 -   [Benchmarks](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/benchmarks.md): game sizes, exact evaluation times, simulation

@@ -46,6 +46,17 @@ class SequenceForm:
     observe: Callable[[jax.Array], jax.Array]
     gradient: Callable[[jax.Array], jax.Array]
 
+    @functools.cached_property
+    def num_infosets(self) -> tuple[int, int]:
+        """The number of information sets of seats 0 and 1."""
+        # Seat 1's start with its first level, whose parent is its empty
+        # sequence, 1.
+        total = self.parent.size
+        seat_0 = min(
+            (s for s, _ in self.levels if self.parent[s] == 1), default=total
+        )
+        return seat_0, total - seat_0
+
 
 def enumerate_tree(game) -> SequenceForm:
     """Returns the sequence form of `game` by enumerating its tree.
