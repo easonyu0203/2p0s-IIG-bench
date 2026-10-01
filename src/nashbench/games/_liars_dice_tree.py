@@ -53,11 +53,8 @@ def sequence_form(game) -> sequence_form_lib.SequenceForm:
         parent=parent,
         legal_action_mask=legal,
         observe=jax.jit(functools.partial(_observe, game, jnp.asarray(dice))),
-        gradient=jax.jit(
-            functools.partial(
-                _gradient, num_dice, jnp.asarray(weight, jnp.float32)
-            )
-        ),
+        # NumPy `weight` becomes a constant in the plan's precision.
+        gradient=jax.jit(functools.partial(_gradient, num_dice, weight)),
     )
 
 
@@ -76,7 +73,7 @@ def _range(i):
 
 def _highest(x):
     """Returns the highest bit set in `x`, or -1 if none."""
-    return 31 - jax.lax.clz(x)
+    return jnp.iinfo(x.dtype).bits - 1 - jax.lax.clz(x)
 
 
 @functools.partial(jax.jit, static_argnums=(0, 1))
@@ -94,7 +91,7 @@ def _parent_and_legal(num_bids, num_dice, ids):
     legal = (action > _highest(x)[:, None]) & (
         (action < num_bids) | (x[:, None] > 0)
     )
-    return parent, legal
+    return parent.astype(jnp.int32), legal
 
 
 def _gradient(num_dice, weight, plan):

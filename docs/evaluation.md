@@ -109,6 +109,8 @@ payoff of every terminal history, independent of the policy. Each call then:
     seat's plan.
 1.  Finds each seat's best response, from the deepest information sets up.
 
+Steps 2 to 4 compute in float64.
+
 The first call for a game builds the sequence form, so it takes longer; later
 calls with the same game object reuse it.
 

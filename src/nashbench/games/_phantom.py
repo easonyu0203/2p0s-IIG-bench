@@ -66,7 +66,7 @@ class PhantomGame(core.Game[PhantomState]):
             view=jnp.full((1, 2, NUM_CELLS), -1, jnp.int32),
             history=jnp.full((1, 2, NUM_CELLS), -1, jnp.int32),
         )
-        return states, jnp.ones(1)
+        return states, np.ones(1)
 
     @override
     def apply_action(self, state, action):

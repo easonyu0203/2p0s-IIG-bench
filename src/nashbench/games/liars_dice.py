@@ -7,6 +7,7 @@ from typing import override
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench import core
 from nashbench.games import _liars_dice_tree
@@ -55,7 +56,7 @@ class LiarsDice(core.Game[LiarsDiceState]):
             dice=dice,
             bids=jnp.zeros((n, self.num_bids), bool),
         )
-        return states, jnp.full(n, 1 / n)
+        return states, np.full(n, 1 / n)
 
     @override
     def apply_action(self, state, action):

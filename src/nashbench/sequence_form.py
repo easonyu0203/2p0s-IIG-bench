@@ -193,8 +193,8 @@ def _from_tables(parents, observations, masks, last_sequences, weights):
 
     seq0 = jnp.asarray(to_global(last_sequences[:, 0], 0))
     seq1 = jnp.asarray(to_global(last_sequences[:, 1], 1))
-    weights = jnp.asarray(weights, jnp.float32)
 
+    # NumPy `weights` become constants in the plan's precision.
     @jax.jit
     def gradient(plan):
         g = jnp.zeros_like(plan).at[seq0].add(weights * plan[seq1])

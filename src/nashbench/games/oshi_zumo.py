@@ -6,6 +6,7 @@ from typing import override
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench import core
 from nashbench.games import _oshi_zumo_tree
@@ -53,7 +54,7 @@ class OshiZumo(core.Game[OshiZumoState]):
             bids=jnp.full((1, 2, self.coins), -1, jnp.int32),
             pending=jnp.full(1, -1, jnp.int32),
         )
-        return states, jnp.ones(1)
+        return states, np.ones(1)
 
     @override
     def apply_action(self, state, action):

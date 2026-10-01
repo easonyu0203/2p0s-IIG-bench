@@ -74,7 +74,7 @@ returns, and information-state tensors. To add one:
 1.  Add `docs/games/<name>.md`, which lists the actions and what each
     observation dimension means. Add the game to the tables in
     [docs/games/index.md](docs/games/index.md) and
-    [docs/benchmarks.md](docs/benchmarks.md). [`benchmarks/stats.py`](benchmarks/stats.py)
+    [docs/benchmarks.md](docs/benchmarks.md). [`benchmarks/measure.py`](benchmarks/measure.py)
     measures their numbers, except the number of terminal histories, which
     you count. Run it on an NVIDIA RTX A6000, the GPU for every measurement
     in the docs.

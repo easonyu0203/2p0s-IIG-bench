@@ -8,6 +8,7 @@ from typing import dataclass_transform
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench import sequence_form as sequence_form_lib
 
@@ -159,11 +160,11 @@ class Game[S: GameState](abc.ABC):
         )
 
     @abc.abstractmethod
-    def initial_states(self) -> tuple[S, jax.Array]:
+    def initial_states(self) -> tuple[S, np.ndarray]:
         """Returns every possible initial state, stacked, and its probability.
 
         All chance events, such as card deals, happen at the start, so initial
-        states differ only in their outcomes.
+        states differ only in their outcomes. Probabilities are float64.
         """
 
     @abc.abstractmethod

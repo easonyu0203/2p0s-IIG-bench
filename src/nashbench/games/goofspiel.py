@@ -7,6 +7,7 @@ from typing import override
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench import core
 from nashbench.games import _goofspiel_tree
@@ -55,7 +56,7 @@ class Goofspiel(core.Game[GoofspielState]):
             pending=jnp.full(n, -1, jnp.int32),
             turn=jnp.zeros(n, jnp.int32),
         )
-        return states, jnp.full(n, 1 / n)
+        return states, np.full(n, 1 / n)
 
     @override
     def apply_action(self, state, action):

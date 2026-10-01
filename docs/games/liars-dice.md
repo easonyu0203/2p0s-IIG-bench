@@ -5,8 +5,8 @@
 with two five-sided dice per seat: `liars_dice(numdice=2,dice_sides=5)`. For
 other sizes, pass `numdice` and `dice_sides`, for example OpenSpiel's
 default, `nashbench.make("liars_dice", numdice=1, dice_sides=6)`. On a 24 GB
-GPU, exact evaluation fits up to about 50 million information sets: the
-default has 15.7 million, and two six-sided dice would have 352 million.
+GPU, exact evaluation fits up to about TBD information sets: the default has
+15.7 million, and two six-sided dice would have 352 million.
 
 Each seat rolls its dice and sees only its own. Seats then take turns,
 starting with seat 0. A seat either bids that at least `q` of all dice show

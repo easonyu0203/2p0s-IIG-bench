@@ -10,17 +10,17 @@ compute.
     [OpenSpiel](https://github.com/google-deepmind/open_spiel).
 -   **One policy interface**: a function from an observation and its legal
     actions to action probabilities, which plays both seats.
--   **Exact exploitability** of that policy, from milliseconds after warmup
-    for poker to under 10 seconds on a GPU for games with 10^10 histories.
+-   **Exact exploitability** of that policy, from TBD after warmup for
+    poker to TBD on a GPU for games with 10^10 histories.
     It also evaluates a policy per seat, and populations of policies.
 
 ## Benchmarks
 
 nashbench includes games with 30 to more than 14 billion terminal histories.
-After warmup, exact exploitability takes milliseconds for poker, Goofspiel,
-Liar's Dice, and Oshi-Zumo, and under 10 seconds for the phantom games on a
-GPU. For per-game tree sizes,
-evaluation times, simulation throughput, and measurement conditions, see
+After warmup, exact exploitability takes TBD for poker, Goofspiel, Liar's
+Dice, and Oshi-Zumo, and TBD for the phantom games on a GPU. For per-game
+tree sizes, evaluation times, simulation throughput, and measurement
+conditions, see
 [Benchmark results](https://github.com/easonyu0203/2p0s-IIG-bench/blob/main/docs/benchmarks.md).
 
 ## Install

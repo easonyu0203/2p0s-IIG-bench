@@ -159,13 +159,17 @@ def _traverse(visit, root, carry):
         ).ravel()
         position = jnp.where(keep, start + jnp.cumsum(keep) - 1, _DROP)
         entries = zip((*nodes, left), (*children, child_mask), strict=True)
+        # With jax_enable_x64, sums and some children are int64; the stack
+        # stays int32.
         stack = tuple(
             s.at[position].set(
-                jnp.stack(e, 1).ravel(), mode="drop", unique_indices=True
+                jnp.stack(e, 1).ravel().astype(s.dtype),
+                mode="drop",
+                unique_indices=True,
             )
             for s, e in zip(stack, entries, strict=True)
         )
-        size = start + keep.sum()
+        size = start + keep.sum(dtype=jnp.int32)
         return stack, size, carry, jnp.maximum(max_size, size)
 
     loop = (stack, jnp.int32(1), carry, jnp.int32(1))

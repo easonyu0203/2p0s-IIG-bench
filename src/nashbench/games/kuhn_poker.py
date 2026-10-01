@@ -6,6 +6,7 @@ from typing import override
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from nashbench import core
 
@@ -41,7 +42,7 @@ class KuhnPoker(core.Game[KuhnState]):
             cards=cards,
             history=jnp.full((n, 3), -1, jnp.int32),
         )
-        return states, jnp.full(n, 1 / n)
+        return states, np.full(n, 1 / n)
 
     @override
     def apply_action(self, state, action):

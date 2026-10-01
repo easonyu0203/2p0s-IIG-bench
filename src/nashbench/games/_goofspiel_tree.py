@@ -204,7 +204,8 @@ def _gradient(tables, plan):
 
     def body(i, gradient):
         points = jax.lax.dynamic_slice_in_dim(perms, i * chunk, chunk) + 1
-        weight = jnp.sign(won @ points.T) / perms.shape[0]  # [pairs, chunk]
+        # [pairs, chunk], in the plan's precision.
+        weight = jnp.sign(won @ points.T).astype(plan.dtype) / perms.shape[0]
         infoset = offset + (i * chunk + jnp.arange(chunk)) * num_pairs
         seq0 = k * (infoset + pair0[:, None] + 1) + b0[:, t, None]
         seq1 = (
