@@ -36,12 +36,21 @@ requires = ["uv_build>=0.11.28,<0.13.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
+baselines = [
+    "optax>=0.2.8",
+    "scipy>=1.18.1",
+    "tyro>=1.0.16",
+    "wandb>=0.30.0",
+]
 dev = [
     "open-spiel>=2.0.2",
     "pyright[nodejs]>=1.1.414",
     "pytest>=9.1.1",
     "ruff>=0.16.9",
 ]
+
+[tool.uv]
+default-groups = ["dev", "baselines"]
 
 [tool.ruff]
 line-length = 80
@@ -57,7 +66,7 @@ force-sort-within-sections = true
 single-line-exclusions = ["collections.abc", "typing"]
 
 [tool.pyright]
-include = ["benchmarks", "src", "tests"]
+include = ["baselines", "benchmarks", "src", "tests"]
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "standard"
