@@ -19,8 +19,8 @@ import references
 
 import nashbench
 
-# OpenSpiel can't fit the default Goofspiel, Liar's Dice and Oshi-Zumo in
-# memory, so it evaluates reduced sizes.
+# OpenSpiel can't fit the default Goofspiel, Liar's Dice, Oshi-Zumo,
+# Battleship and limit poker in memory, so it evaluates reduced sizes.
 CONFIGS = [
     ("openspiel", "kuhn_poker", {}),
     ("openspiel", "leduc_poker", {}),
@@ -33,6 +33,25 @@ CONFIGS = [
         ("openspiel", "oshi_zumo", {"coins": c, "size": s})
         for c, s in [(6, 1), (8, 3), (10, 3)]
     ),
+    ("openspiel", "blotto", {}),
+    *(
+        (
+            "openspiel",
+            "battleship",
+            {"height": h, "width": w, "ship_size": size, "num_shots": n},
+        )
+        for h, w, size, n in [(2, 3, 1, 3), (3, 3, 2, 2), (2, 4, 3, 3)]
+    ),
+    # OpenSpiel's information states forget the order of public cards, so
+    # they have perfect recall with two rounds only.
+    *(
+        (
+            "openspiel",
+            "universal_poker",
+            {"num_ranks": r, "raise_sizes": (2, 4), "max_raises": m},
+        )
+        for r, m in [(3, 2), (4, 3)]
+    ),
     *(("exp-a-spiel", name, {}) for name in references.TRAVERSERS),
 ]
 REFERENCES = {
@@ -42,7 +61,7 @@ REFERENCES = {
 # A value passes if its error is at most TOLERANCE times the game's largest
 # absolute return: MAX_RETURN, or 1.
 TOLERANCE = 1e-9
-MAX_RETURN = {"kuhn_poker": 2, "leduc_poker": 13}
+MAX_RETURN = {"kuhn_poker": 2, "leduc_poker": 13, "universal_poker": 19}
 
 
 def main():

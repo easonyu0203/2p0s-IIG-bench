@@ -24,6 +24,9 @@ new network parameters each time.
 | [`phantom_ttt_abrupt`](games/phantom-tic-tac-toe.md) | 23,310,269 | 13,578,403,440 | TBD | TBD | TBD |
 | [`dark_hex3`](games/dark-hex.md) | 6,072,917 | 9,469,697,760 | TBD | TBD | TBD |
 | [`dark_hex3_abrupt`](games/dark-hex.md) | 27,325,277 | 14,663,760,672 | TBD | TBD | TBD |
+| [`universal_poker`](games/universal-poker.md) | 9,112,032 | 108,134,928 | TBD | TBD | TBD |
+| [`battleship`](games/battleship.md) | 5,592,302 | 5,706,547,200 | TBD | TBD | TBD |
+| [`blotto`](games/blotto.md) | 2 | 1,002,001 | TBD | TBD | TBD |
 
 For how exact exploitability is computed, see [Evaluation](evaluation.md).
 
@@ -34,8 +37,8 @@ steps per second (M steps/s)**. Each column is the number of independent
 environments stepped together. Values exclude JAX compilation and include
 sampling uniformly random legal actions, stepping with
 `jax.jit(jax.vmap(nashbench.auto_reset(game)))`, and computing the
-observation of the player to act. In Goofspiel and Oshi-Zumo, a turn takes
-two steps, one per seat.
+observation of the player to act. In Goofspiel, Oshi-Zumo, and Blotto, a
+turn takes two steps, one per seat.
 
 | Game | 64 environments (M steps/s) | 1,024 environments (M steps/s) | 16,384 environments (M steps/s) |
 | --- | ---: | ---: | ---: |
@@ -48,6 +51,9 @@ two steps, one per seat.
 | `phantom_ttt_abrupt` | TBD | TBD | TBD |
 | `dark_hex3` | TBD | TBD | TBD |
 | `dark_hex3_abrupt` | TBD | TBD | TBD |
+| `universal_poker` | TBD | TBD | TBD |
+| `battleship` | TBD | TBD | TBD |
+| `blotto` | TBD | TBD | TBD |
 
 ## Measurement conditions
 

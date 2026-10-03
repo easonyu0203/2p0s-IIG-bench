@@ -15,8 +15,10 @@ from open_spiel.python import policy as openspiel_policy
 from open_spiel.python.algorithms import policy_aggregator
 import pyspiel
 
+from nashbench.games import blotto
 from nashbench.games import goofspiel
 from nashbench.games import oshi_zumo
+from nashbench.games import universal_poker
 
 
 class OpenSpiel:
@@ -101,6 +103,25 @@ def _openspiel_string(name, game):
         )
     if name == "oshi_zumo":
         return f"oshi_zumo(coins={game.coins},size={game.size},min_bid=1)"
+    if name == "blotto":
+        return f"blotto(coins={game.coins},fields={game.fields})"
+    if name == "battleship":
+        return (
+            f"battleship(board_height={game.height},board_width={game.width},"
+            f"ship_sizes=[{game.ship_size}],ship_values=[1],"
+            f"num_shots={game.num_shots},allow_repeated_shots=false)"
+        )
+    if name == "universal_poker":
+        n = game.num_rounds
+        return (
+            "universal_poker(betting=limit,numPlayers=2,"
+            f"numRounds={n},blind=1 1,"
+            f"raiseSize={' '.join(map(str, game.raise_sizes))},"
+            f"firstPlayer={' '.join(['1'] * n)},"
+            f"maxRaises={' '.join([str(game.max_raises)] * n)},"
+            f"numSuits=4,numRanks={game.num_ranks},numHoleCards=1,"
+            f"numBoardCards={' '.join(['0'] + ['1'] * (n - 1))})"
+        )
     return name
 
 
@@ -119,8 +140,19 @@ def _observation(game, state, player):
         )
     else:
         tensor = np.asarray(state.information_state_tensor(player))
-        if isinstance(game, goofspiel.Goofspiel):
+        if isinstance(game, goofspiel.Goofspiel | blotto.Blotto):
             tensor = tensor[2:]  # The turn-based game's who plays and observes.
+        if isinstance(game, universal_poker.UniversalPoker):
+            # nashbench appends the public card of each round.
+            public = np.zeros((game.num_rounds - 1, game.num_cards))
+            cards = [
+                a.action
+                for a in state.full_history()
+                if a.player == pyspiel.PlayerId.CHANCE
+            ]
+            for i, card in enumerate(cards[2:]):
+                public[i, card] = 1
+            tensor = np.concatenate([tensor, public.ravel()])
     if tensor.size < game.observation_shape[0]:
         tensor = np.concatenate([np.eye(2)[player], tensor])
     return tensor

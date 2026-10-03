@@ -2,9 +2,9 @@
 
 Each game replicates an OpenSpiel game. Pass its name to `nashbench.make`.
 To load the OpenSpiel equivalent, pass the OpenSpiel game string to
-`pyspiel.load_game`. For Goofspiel and Oshi-Zumo, whose seats move at once,
-wrap it in `turn_based_simultaneous_game(game=...)`, because nashbench
-[takes their moves in turn](../core-concepts.md#simultaneous-moves).
+`pyspiel.load_game`. For Goofspiel, Oshi-Zumo, and Blotto, whose seats move
+at once, wrap it in `turn_based_simultaneous_game(game=...)`, because
+nashbench [takes their moves in turn](../core-concepts.md#simultaneous-moves).
 
 | Name | OpenSpiel game | Actions | Observation size |
 | --- | --- | --- | --- |
@@ -17,6 +17,9 @@ wrap it in `turn_based_simultaneous_game(game=...)`, because nashbench
 | [`phantom_ttt_abrupt`](phantom-tic-tac-toe.md) | `phantom_ttt(gameversion=abrupt)` | 9 | 110 |
 | [`dark_hex3`](dark-hex.md) | `dark_hex` | 9 | 164 |
 | [`dark_hex3_abrupt`](dark-hex.md) | `dark_hex(gameversion=adh)` | 9 | 164 |
+| [`universal_poker`](universal-poker.md) | `universal_poker(betting=limit,numPlayers=2,numRounds=4,blind=1 1,raiseSize=2 2 4 4,firstPlayer=1 1 1 1,maxRaises=2 2 2 2,numSuits=4,numRanks=3,numHoleCards=1,numBoardCards=0 1 1 1)` | 3 | 164 |
+| [`battleship`](battleship.md) | `battleship(board_height=6,board_width=6,ship_sizes=[2],ship_values=[1],num_shots=2,allow_repeated_shots=false)` | 108 | 89 |
+| [`blotto`](blotto.md) | `blotto(coins=10,fields=5)` | 1,001 | 3 |
 
 For game-tree sizes, exact evaluation times, and simulation throughput, see
 [Benchmark results](../benchmarks.md).

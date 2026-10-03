@@ -54,10 +54,10 @@ The outcome of an illegal action is unspecified.
 
 ### Simultaneous moves
 
-In Goofspiel and Oshi-Zumo, both seats move at once. nashbench takes these
-moves in turn: seat 0 moves first, then seat 1 moves without seeing seat 0's
-move, as in OpenSpiel's `turn_based_simultaneous_game`. Both versions have
-the same information states, so they have the same equilibria.
+In Goofspiel, Oshi-Zumo, and Blotto, both seats move at once. nashbench
+takes these moves in turn: seat 0 moves first, then seat 1 moves without
+seeing seat 0's move, as in OpenSpiel's `turn_based_simultaneous_game`. Both
+versions have the same information states, so they have the same equilibria.
 
 ## Observations
 
@@ -65,7 +65,9 @@ A seat's observation is a one-hot encoding of the seat followed by
 OpenSpiel's information-state tensor for that seat. In Kuhn poker, Leduc
 poker, and Liar's Dice, OpenSpiel's tensor already starts with the seat, so
 the observation equals OpenSpiel's tensor. OpenSpiel's Oshi-Zumo has no such
-tensor, so nashbench [defines one](games/oshi-zumo.md#observation).
+tensor, so nashbench [defines one](games/oshi-zumo.md#observation), and in
+limit poker, nashbench [adds the order of public
+cards](games/universal-poker.md) that OpenSpiel's tensor lacks.
 
 As a result, observations have these properties:
 

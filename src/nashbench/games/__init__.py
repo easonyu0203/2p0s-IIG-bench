@@ -4,6 +4,8 @@ from collections.abc import Callable
 import functools
 
 from nashbench import core
+from nashbench.games import battleship
+from nashbench.games import blotto
 from nashbench.games import dark_hex
 from nashbench.games import goofspiel
 from nashbench.games import kuhn_poker
@@ -11,6 +13,7 @@ from nashbench.games import leduc_poker
 from nashbench.games import liars_dice
 from nashbench.games import oshi_zumo
 from nashbench.games import phantom_ttt
+from nashbench.games import universal_poker
 
 #: Constructor of each game, by name.
 REGISTRY: dict[str, Callable[..., core.Game]] = {
@@ -25,6 +28,9 @@ REGISTRY: dict[str, Callable[..., core.Game]] = {
     "goofspiel": goofspiel.Goofspiel,
     "liars_dice": liars_dice.LiarsDice,
     "oshi_zumo": oshi_zumo.OshiZumo,
+    "battleship": battleship.Battleship,
+    "blotto": blotto.Blotto,
+    "universal_poker": universal_poker.UniversalPoker,
 }
 
 

@@ -62,6 +62,49 @@ GAMES = {
         )
         for c, s in [(5, 3), (6, 1), (13, 3)]
     },
+    **{
+        f"blotto{c}x{f}": (
+            "blotto",
+            {"coins": c, "fields": f},
+            (
+                "turn_based_simultaneous_game(game="
+                f"blotto(coins={c},fields={f}))"
+            ),
+        )
+        for c, f in [(4, 3), (10, 5)]
+    },
+    **{
+        f"battleship{h}x{w}_{size}_{shots}": (
+            "battleship",
+            {"height": h, "width": w, "ship_size": size, "num_shots": shots},
+            (
+                f"battleship(board_height={h},board_width={w},"
+                f"ship_sizes=[{size}],ship_values=[1],num_shots={shots},"
+                "allow_repeated_shots=false)"
+            ),
+        )
+        for h, w, size, shots in [(2, 3, 1, 2), (2, 4, 3, 3), (6, 6, 2, 2)]
+    },
+    **{
+        f"universal_poker{r}_{len(sizes)}_{m}": (
+            "universal_poker",
+            {"num_ranks": r, "raise_sizes": sizes, "max_raises": m},
+            (
+                "universal_poker(betting=limit,numPlayers=2,"
+                f"numRounds={len(sizes)},blind=1 1,"
+                f"raiseSize={' '.join(map(str, sizes))},"
+                f"firstPlayer={' '.join(['1'] * len(sizes))},"
+                f"maxRaises={' '.join([str(m)] * len(sizes))},numSuits=4,"
+                f"numRanks={r},numHoleCards=1,"
+                f"numBoardCards={' '.join(['0'] + ['1'] * (len(sizes) - 1))})"
+            ),
+        )
+        for r, sizes, m in [
+            (2, (2, 4), 1),
+            (2, (1, 2, 3), 2),
+            (3, (2, 2, 4, 4), 2),
+        ]
+    },
 }
 # Every deal (chance outcomes, in dealing order) of games checked on every
 # history.
@@ -74,6 +117,9 @@ DEALS = {
     "liars_dice2x2": list(itertools.product(range(2), repeat=4)),
     "oshi_zumo5x3": [()],
     "oshi_zumo6x1": [()],
+    "blotto4x3": [()],
+    "battleship2x3_1_2": [()],
+    "universal_poker2_2_1": list(itertools.permutations(range(8), 3)),
 }
 NUM_RANDOM_HISTORIES = 3000
 
@@ -129,10 +175,17 @@ def _information_state_tensor(game, name, state, seat):
     Turn-based versions of games with simultaneous moves start their tensors
     with the seat to act, which nashbench omits. Oshi-Zumo has no
     information-state tensor; nashbench appends every bid of finished turns to
-    its observation tensor.
+    its observation tensor. In limit poker, nashbench appends the public card
+    of each round.
     """
-    if name == "goofspiel":
+    if name in ("goofspiel", "blotto"):
         return np.ravel(state.information_state_tensor(seat))[2:]
+    if name == "universal_poker":
+        public = np.zeros((game.num_rounds - 1, game.num_cards))
+        for i, card in enumerate(_chance(state)[2:]):
+            public[i, card] = 1
+        tensor = state.information_state_tensor(seat)
+        return np.concatenate([tensor, public.ravel()])
     if name != "oshi_zumo":
         return np.ravel(state.information_state_tensor(seat))
     history = state.history()
@@ -145,12 +198,26 @@ def _information_state_tensor(game, name, state, seat):
 
 def _information_state(state, player):
     info = state.information_state_string(player)
-    if state.get_game().get_type().short_name == "dark_hex":
+    name = state.get_game().get_type().short_name
+    if name == "dark_hex":
         # Drop the total move count, which only the string reveals (see
         # docs/games/dark-hex.md).
         lines = info.split("\n")
         info = "\n".join(lines[:3] + lines[4:])
+    if name == "universal_poker":
+        # Add the order of the public cards, which the string lacks (see
+        # docs/games/universal-poker.md).
+        info += str(_chance(state)[2:])
     return player, info
+
+
+def _chance(state):
+    """Returns the chance outcomes of a state's history."""
+    return [
+        a.action
+        for a in state.full_history()
+        if a.player == pyspiel.PlayerId.CHANCE
+    ]
 
 
 @functools.cache
@@ -194,7 +261,12 @@ def _nodes(test_id):
                         state, seat
                     )
 
-    chance = jnp.array([c for c, _ in histories], jnp.int32)
+    # Poker histories that end early lack public cards, which the rules then
+    # don't use.
+    num_chance = max(len(c) for c, _ in histories)
+    chance = jnp.array(
+        [c + (0,) * (num_chance - len(c)) for c, _ in histories], jnp.int32
+    )
     actions = np.zeros(shape, np.int32)  # One padding action at the end.
     for i, (_, a) in enumerate(histories):
         actions[i, : len(a)] = a
@@ -222,6 +294,8 @@ def _replay(game, name, chance, actions):
     elif name == "liars_dice":
         dice = jnp.sort(chance.reshape(2, -1))
         state = dataclasses.replace(state, dice=dice)
+    elif name == "universal_poker":
+        state = dataclasses.replace(state, cards=chance)
 
     def step(state, action):
         seats = jnp.arange(2)
