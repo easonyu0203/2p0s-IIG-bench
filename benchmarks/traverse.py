@@ -28,6 +28,7 @@ import os
 from pathlib import Path
 import re
 import time
+from typing import Any
 
 import numpy as np
 
@@ -132,7 +133,7 @@ CHUNK = 4096
 
 
 @functools.cache
-def _games(key):
+def _games(key) -> tuple[Any, pyspiel.Game]:
     name, os_name, _, _ = GAMES[key]
     return nashbench.make(name), pyspiel.load_game(os_name)
 
@@ -169,14 +170,14 @@ def _pad(tree, size):
 
 @functools.cache
 def _initial_states(key):
-    """nashbench's initial states and their probabilities, as NumPy arrays."""
+    """The game's initial states and their probabilities, as NumPy arrays."""
     game, _ = _games(key)
     states, probs = game.initial_states()
     return jax.tree.map(np.asarray, states), np.asarray(probs)
 
 
 def _root(key, deal):
-    """nashbench's state after `deal`, as in openspiel_test._replay."""
+    """The nashbench state after `deal`, as in openspiel_test._replay."""
     game, _ = _games(key)
     state = jax.tree.map(lambda x: x[0], _initial_states(key)[0])
     name = GAMES[key][0]
@@ -209,7 +210,7 @@ def _deal_key(state):
 class Node:
     """OpenSpiel's state at a node, and how much of its deal it has used."""
 
-    state: object
+    state: pyspiel.State
     deal: tuple
     dealt: int  # Chance outcomes applied so far.
     probability: float  # Product of their probabilities.
@@ -272,6 +273,7 @@ def _observer(key):
         extra = {"goofspiel": -2, "blotto": -2}.get(name, 0)
         if name == "universal_poker":
             extra = (game.num_rounds - 1) * game.num_cards
+    assert observer is not None and observer.tensor is not None
     size = observer.tensor.size + extra
     return observer, game.observation_shape[0] - size
 
@@ -290,6 +292,7 @@ def _fill(key, node, seat, row):
     observer, prefix = _observer(key)
     observer.set_from(node.state, seat)
     tensor = observer.tensor
+    assert tensor is not None
     if prefix:
         row[seat] = 1
     if name in ("goofspiel", "blotto"):
@@ -324,12 +327,12 @@ def _information_state(name, node, seat):
 
 
 class Mismatch(Exception):
-    pass
+    """Nashbench and OpenSpiel disagree."""
 
 
 def _compare(key, nodes, states, depth, stats):
     """Compares one chunk; returns its OpenSpiel and nashbench children."""
-    inspect, step = _functions(key)
+    inspect, _ = _functions(key)
     n = len(nodes)
     actual = jax.tree.map(np.asarray, inspect(_pad(states, CHUNK)))
     expected, information = _expected(key, nodes, CHUNK)
@@ -430,7 +433,7 @@ def _walk(key, roots, stop=None):
     stack = [
         (
             nodes[i : i + CHUNK],
-            jax.tree.map(lambda x: x[i : i + CHUNK], states),
+            jax.tree.map(lambda x, i=i: x[i : i + CHUNK], states),
             depth,
         )
         for i in range(0, len(nodes), CHUNK)
@@ -443,7 +446,7 @@ def _walk(key, roots, stop=None):
                 (
                     node.deal,
                     tuple(_actions(node)),
-                    jax.tree.map(lambda x: x[i], states),
+                    jax.tree.map(lambda x, i=i: x[i], states),
                 )
                 for i, node in enumerate(nodes)
             )
@@ -451,11 +454,12 @@ def _walk(key, roots, stop=None):
         parents, actions, children = _compare(key, nodes, states, depth, stats)
         for start in range(0, len(children), CHUNK):
             index = np.asarray(parents[start : start + CHUNK])
-            batch = jax.tree.map(lambda x: x[index], states)
+            batch = jax.tree.map(lambda x, index=index: x[index], states)
             moves = np.zeros(CHUNK, np.int32)
             moves[: len(index)] = actions[start : start + CHUNK]
             batch = step(_pad(batch, CHUNK), moves)
-            batch = jax.tree.map(lambda x: np.asarray(x)[: len(index)], batch)
+            n = len(index)
+            batch = jax.tree.map(lambda x, n=n: np.asarray(x)[:n], batch)
             stack.append((children[start : start + CHUNK], batch, depth + 1))
     return stats, frontier
 
@@ -469,7 +473,7 @@ def _actions(node):
     ]
 
 
-def _task(args):
+def _task(args) -> dict[str, Any]:
     key, roots = args
     try:
         stats, _ = _walk(key, roots)
@@ -487,7 +491,6 @@ def _task(args):
 def _check_game(key, workers, log):
     """Traverses one game; returns its record or raises Mismatch."""
     start = time.perf_counter()
-    game, os_game = _games(key)
     deals = [tuple(d) for d in GAMES[key][2]()]
     split = GAMES[key][3]
     # Nodes above the split are compared here; subtrees go to the workers.
@@ -548,8 +551,7 @@ def _check_game(key, workers, log):
 
 def _check_deals(key, deals, probabilities):
     """Each deal has one OpenSpiel probability, and nashbench's."""
-    game, _ = _games(key)
-    expected = collections.Counter()
+    expected = collections.defaultdict(float)
     for deal in deals:
         # Games without chance have one deal, the empty one.
         values = probabilities.get(deal) or ({1.0} if deal == () else None)
@@ -558,7 +560,7 @@ def _check_deals(key, deals, probabilities):
         expected[_deal_key(_root(key, deal))] += next(iter(values))
     states, probs = _initial_states(key)
     leaves = jax.tree.leaves(states)
-    actual = collections.Counter()
+    actual = collections.defaultdict(float)
     for i in range(len(probs)):
         actual[b"".join(x[i].tobytes() for x in leaves)] += float(probs[i])
     if expected.keys() != actual.keys() or any(
@@ -568,9 +570,12 @@ def _check_deals(key, deals, probabilities):
 
 
 def main():
+    """Traverses the selected games and appends their records."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--only", default=".*")
-    parser.add_argument("--workers", type=int, default=os.cpu_count() - 2)
+    parser.add_argument(
+        "--workers", type=int, default=max(1, (os.cpu_count() or 1) - 2)
+    )
     parser.add_argument(
         "--out", type=Path, default=Path("benchmarks/traverse.jsonl")
     )

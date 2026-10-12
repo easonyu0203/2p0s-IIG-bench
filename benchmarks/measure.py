@@ -294,10 +294,9 @@ def _simulation(spec, game, batch_sizes=BATCH_SIZES):
 
 
 def _openspiel(spec, game, seconds=10.0):
-    """OpenSpiel's implementation of the game, played from Python on one CPU
-    thread with uniform random actions, for reference.
+    """Plays OpenSpiel's implementation of the game, for reference.
 
-    Like the simulation, every decision computes the acting seat's tensor (its
+    It plays from Python on one CPU thread with uniform random actions. Like the simulation, every decision computes the acting seat's tensor (its
     information state where the game provides one); a simultaneous move counts
     as two decisions.
     """
@@ -314,17 +313,23 @@ def _openspiel(spec, game, seconds=10.0):
         state = os_game.new_initial_state()
         while not state.is_terminal():
             if state.is_chance_node():
-                outcomes, probs = zip(*state.chance_outcomes())
+                outcomes, probs = zip(*state.chance_outcomes(), strict=True)
                 state.apply_action(rng.choices(outcomes, probs)[0])
                 continue
-            seats = range(2) if state.is_simultaneous_node() else [state.current_player()]
+            seats = (
+                range(2)
+                if state.is_simultaneous_node()
+                else [state.current_player()]
+            )
             for seat in seats:
                 if info:
                     state.information_state_tensor(seat)
                 else:
                     state.observation_tensor(seat)
             if state.is_simultaneous_node():
-                state.apply_actions([rng.choice(state.legal_actions(p)) for p in seats])
+                state.apply_actions(
+                    [rng.choice(state.legal_actions(p)) for p in seats]
+                )
             else:
                 state.apply_action(rng.choice(state.legal_actions()))
             decisions += len(seats)
