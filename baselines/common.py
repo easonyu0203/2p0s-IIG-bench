@@ -30,9 +30,9 @@ class Config:
     decisions: int = 10_000_000
     """Player decisions to train for."""
     seed: int = 0
-    layers: int = 2
+    layers: int = 3
     """Hidden layers of each network."""
-    width: int = 256
+    width: int = 512
     """Units per hidden layer."""
     evaluations_per_decade: int = 4
     """Exact evaluations per tenfold increase in player decisions."""

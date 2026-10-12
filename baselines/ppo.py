@@ -33,7 +33,7 @@ class Config(common.Config):
     max_grad_norm: float = 0.5
     gae_lambda: float = 0.95
     clip: float = 0.2
-    entropy_coef: float = 0.01
+    entropy_coef: float = 0.05
     value_coef: float = 0.5
 
 
