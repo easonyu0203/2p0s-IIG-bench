@@ -1,9 +1,8 @@
 # nashbench
 
 nashbench is a benchmark for algorithms that learn Nash equilibria in
-two-player zero-sum imperfect-information games. Its games are chosen to be
-as large as possible while their **exact exploitability** stays feasible to
-compute.
+two-player zero-sum imperfect-information games. It provides games
+and configurations for which **exact exploitability** remains feasible.
 
 -   **Games in JAX**, which run under `jax.jit` and `jax.vmap`. Their rules,
     actions, and observations match

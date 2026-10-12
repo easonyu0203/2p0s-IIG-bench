@@ -125,11 +125,11 @@ def train(
         state = State(network, regrets, policies, None, iteration, key)
         made += int(more + even_more)
         episodes += config.value_traversals + 2 * config.traversals
-    key, average_key = jax.random.split(state.key)
+    average_key = jax.random.fold_in(state.key, state.iteration)
     average = _fit_average(
         config, game, state.policies, state.iteration, average_key
     )
-    return state._replace(average=average, key=key), made, episodes
+    return state._replace(average=average), made, episodes
 
 
 @functools.partial(jax.jit, static_argnums=(0, 1))

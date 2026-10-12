@@ -6,8 +6,7 @@ MMD (https://arxiv.org/abs/2206.05825) regularizes PPO toward a uniform
 magnet, through an entropy bonus, and toward the previous policy, through
 KL(π ‖ π_old).
 
-We follow the implementation of Rudolph et al. (2025,
-https://arxiv.org/abs/2502.08938) in
+We follow the implementation of Rudolph et al. (2025) in
 https://github.com/nathanlct/IIG-RL-Benchmark: it keeps PPO's clipping,
 estimates the KL from the sampled actions, and keeps the coefficients
 constant.
