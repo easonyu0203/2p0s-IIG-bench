@@ -4,7 +4,7 @@
 
 DREAM (https://arxiv.org/abs/2006.10410) is outcome-sampling MCCFR with
 neural networks, whose learned history baseline reduces variance. The
-defaults follow the paper's Leduc poker setup. Unlike the paper, one 
+defaults follow the paper's Leduc poker setup. Unlike the paper, one
 advantage network plays both seats and each iteration updates both.
 """
 
@@ -198,7 +198,7 @@ def train(
             transitions,
             baseline_key,
         )
-        
+
         older = [jax.device_get(state.networks[-1])] if state.networks else []
         state = State(
             [*state.networks[:-1], *older, network],
