@@ -2,6 +2,7 @@
 
 import copy
 import dataclasses
+import hashlib
 import itertools
 from pathlib import Path
 import platform
@@ -150,16 +151,25 @@ def environment():
     root = Path(__file__).parent
 
     def git(*args):
-        return subprocess.run(
+        result = subprocess.run(
             ["git", "-C", root, *args],
             capture_output=True,
             text=True,
-            check=True,
-        ).stdout.strip()
+            check=False,
+        )
+        return result.stdout.strip() if result.returncode == 0 else None
+
+    revision = git("rev-parse", "--short", "HEAD")
+    digest = hashlib.sha256()
+    for directory in (root.parent / "src", root):
+        for path in sorted(directory.rglob("*.py")):
+            digest.update(str(path.relative_to(root.parent)).encode())
+            digest.update(path.read_bytes())
 
     return {
-        "revision": git("rev-parse", "--short", "HEAD"),
-        "dirty": bool(git("status", "--porcelain")),
+        "revision": revision,
+        "dirty": bool(git("status", "--porcelain")) if revision else None,
+        "source_sha256": digest.hexdigest(),
         "jax": jax.__version__,
         "device": jax.devices()[0].device_kind,
         "host": platform.node(),

@@ -29,6 +29,17 @@ import nashbench
 GAMES = list(nashbench.REGISTRY)
 NETWORKS = {"2x256": (256, 256), "3x512": (512, 512, 512)}
 BATCH_SIZES = (64, 1024, 16384)
+#: Parallel episodes of the scaling measurement, and its games (the core suite).
+SCALING = tuple(4**k for k in range(9))
+SCALING_GAMES = (
+    "leduc_poker",
+    "universal_poker",
+    "liars_dice",
+    "goofspiel",
+    "oshi_zumo",
+    "blotto",
+    "dark_hex3_abrupt",
+)
 MEASUREMENTS = [
     *(
         {"workload": "network", "game": game, "network": network}
@@ -50,6 +61,12 @@ MEASUREMENTS = [
         for game in GAMES
         for network in ("uniform", "2x256")
     ),
+    *(
+        {"workload": "scaling", "game": game, "network": network}
+        for game in SCALING_GAMES
+        for network in ("uniform", "2x256")
+    ),
+    *({"workload": "openspiel", "game": game} for game in SCALING_GAMES),
 ]
 
 
@@ -74,11 +91,8 @@ def run(args):
             check=False,
             env=os.environ | {"XLA_PYTHON_CLIENT_PREALLOCATE": "false"},
         )
-        record = (
-            json.loads(result.stdout.splitlines()[-1])
-            if result.returncode == 0
-            else {"error": result.stderr[-2000:]}
-        )
+        record = last_object(result.stdout) if result.returncode == 0 else None
+        record = record or {"error": (result.stderr or result.stdout)[-2000:]}
         record = {
             "id": name,
             **spec,
@@ -90,6 +104,26 @@ def run(args):
             f.write(json.dumps(record) + "\n")
         if "error" in record:
             print(record["error"])
+
+
+def last_object(text):
+    """The worker's record: the last top-level JSON object in its stdout.
+
+    exp-a-spiel's C++ code also logs to stdout, without flushing, so its
+    lines can precede or follow the record, even on the same line.
+    """
+    decoder, found = json.JSONDecoder(), None
+    start = text.find('{"')
+    while start >= 0:
+        try:
+            value, end = decoder.raw_decode(text, start)
+        except json.JSONDecodeError:
+            start = text.find('{"', start + 1)
+            continue
+        if isinstance(value, dict):
+            found = value
+        start = text.find('{"', end)
+    return found
 
 
 def _gpu_processes():
@@ -112,9 +146,9 @@ def _gpu_processes():
 
 def worker(spec):
     """Runs one measurement and prints its record as a JSON line."""
-    game = nashbench.make(spec["game"])
+    game = nashbench.make(spec["game"], **spec.get("game_params", {}))
     record = {}
-    if spec["workload"] != "simulation":
+    if spec["workload"] not in ("simulation", "scaling", "openspiel"):
         _, record["build"] = _timed(lambda: game.sequence_form)
         record["infosets"] = game.sequence_form.parent.size
     workloads = {
@@ -123,6 +157,8 @@ def worker(spec):
         "exp_a_spiel": _exp_a_spiel,
         "population": _population,
         "simulation": _simulation,
+        "scaling": lambda spec, game: _simulation(spec, game, SCALING),
+        "openspiel": _openspiel,
     }
     record |= workloads[spec["workload"]](spec, game)
     stats = jax.devices()[0].memory_stats() or {}
@@ -140,7 +176,9 @@ def _timed(fn):
 def _network(spec, game):
     """Evaluates networks of one architecture, each with new parameters."""
     policies = [
-        common.network(game, NETWORKS[spec["network"]], seed)
+        common.network(
+            game, NETWORKS[spec["network"]], spec.get("seed", 0) * 100 + seed
+        )
         for seed in range(spec["repeats"] + 1)
     ]
     times = [
@@ -151,7 +189,9 @@ def _network(spec, game):
 
 def _table(spec, game):
     """Evaluates a table of a network's probabilities, already on the GPU."""
-    rows = jnp.asarray(common.table(game, common.network(game)))
+    rows = jnp.asarray(
+        common.table(game, common.network(game, seed=spec.get("seed", 0)))
+    )
     times = [
         _timed(lambda: common.evaluate_tables(game, [(rows, (1, 1))]))[1]
         for _ in range(spec["repeats"] + 1)
@@ -220,7 +260,7 @@ def _population(spec, game):
     return {"first": times[0], "warm": times[1:]}
 
 
-def _simulation(spec, game):
+def _simulation(spec, game, batch_sizes=BATCH_SIZES):
     """Steps batches of games, choosing actions by a policy.
 
     Rates are steps per second, including resets and observations. Each step
@@ -229,19 +269,66 @@ def _simulation(spec, game):
     if spec["network"] == "uniform":
         policy = nashbench.uniform_random
     else:
-        policy = common.network(game, NETWORKS[spec["network"]])
+        policy = common.network(
+            game, NETWORKS[spec["network"]], seed=spec.get("seed", 0)
+        )
     rates = {}
-    for batch in BATCH_SIZES:
+    for batch in batch_sizes:
         num_steps = max(100, min(2000, 2**22 // batch))
         rollout = _rollout(game, policy, batch, num_steps)
-        rollout(jax.random.key(0))  # Compiles.
+        # Finish compilation and warmup before timing a later dispatch.
+        jax.block_until_ready(
+            rollout(jax.random.key(spec.get("seed", 0) * 100))
+        )
         rates[batch] = [
             batch
             * num_steps
-            / _timed(lambda s=s, f=rollout: f(jax.random.key(s)))[1]
+            / _timed(
+                lambda s=s, f=rollout: f(
+                    jax.random.key(spec.get("seed", 0) * 100 + s)
+                )
+            )[1]
             for s in range(1, spec["repeats"] + 1)
         ]
     return {"steps_per_second": rates}
+
+
+def _openspiel(spec, game, seconds=10.0):
+    """OpenSpiel's implementation of the game, played from Python on one CPU
+    thread with uniform random actions, for reference.
+
+    Like the simulation, every decision computes the acting seat's tensor (its
+    information state where the game provides one); a simultaneous move counts
+    as two decisions.
+    """
+    import random
+
+    import pyspiel
+    import traverse
+
+    os_game = pyspiel.load_game(traverse.GAMES[spec["game"]][1])
+    info = os_game.get_type().provides_information_state_tensor
+    rng = random.Random(0)
+    decisions, start = 0, time.perf_counter()
+    while time.perf_counter() - start < seconds:
+        state = os_game.new_initial_state()
+        while not state.is_terminal():
+            if state.is_chance_node():
+                outcomes, probs = zip(*state.chance_outcomes())
+                state.apply_action(rng.choices(outcomes, probs)[0])
+                continue
+            seats = range(2) if state.is_simultaneous_node() else [state.current_player()]
+            for seat in seats:
+                if info:
+                    state.information_state_tensor(seat)
+                else:
+                    state.observation_tensor(seat)
+            if state.is_simultaneous_node():
+                state.apply_actions([rng.choice(state.legal_actions(p)) for p in seats])
+            else:
+                state.apply_action(rng.choice(state.legal_actions()))
+            decisions += len(seats)
+    return {"steps_per_second": decisions / (time.perf_counter() - start)}
 
 
 def _rollout(game, policy, batch, num_steps):

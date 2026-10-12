@@ -21,6 +21,15 @@ The test policies are uniform, random, deterministic, sparse (two actions
 at most), a network, and a population that mixes different policies in each
 seat. `common.py` defines them.
 
+`traverse.py` checks the games themselves. `openspiel_test.py` compares random
+histories of the larger games to keep the tests fast; `traverse.py` walks the
+whole tree of every game at its default size together with OpenSpiel and
+compares every history: whether the game is over, the returns, the seat to
+act, its legal actions and both seats' observations. It also checks that
+observations and OpenSpiel's information states determine each other and that
+every deal has OpenSpiel's probability. The phantom games take hours on a
+few dozen CPU cores (`--workers`).
+
 ## Measurements
 
 `measure.py run` times exact evaluation and simulation on a GPU, and
@@ -42,10 +51,19 @@ one question:
 -   **`simulation`: how fast do the games run?** Steps per second of 64,
     1,024 or 16,384 games at once, with random or network actions. Each
     step is one player's decision.
+-   **`scaling`: how does that grow with the number of games?** The same,
+    for 1 to 65,536 games at once on the games of the paper's core suite.
+-   **`openspiel`: how fast is OpenSpiel, for reference?** OpenSpiel's
+    implementation of each of those games, played from Python with random
+    actions on one CPU thread, computing the acting seat's tensor at every
+    decision.
 
 Each measurement runs in a new process, so its first evaluation includes
 compilation, as a user's does. Records also hold the time to build the
 game's sequence form, which happens once per game, and the peak GPU memory.
+
+`memory.py` records the peak host and GPU memory of one evaluation, in a new
+process per game, for nashbench and for exp-a-spiel.
 
 ## Run
 
