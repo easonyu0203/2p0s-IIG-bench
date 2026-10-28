@@ -233,6 +233,8 @@ def nash(payoffs):
     least v.
     """
     k = len(payoffs)
+    if not np.isfinite(payoffs).all():
+        raise common.NonfiniteError("Nonfinite meta-game payoffs")
     result = optimize.linprog(
         c=np.r_[np.zeros(k), -1],
         A_ub=np.c_[-payoffs.T, np.ones(k)],

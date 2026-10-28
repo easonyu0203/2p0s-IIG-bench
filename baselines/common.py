@@ -22,6 +22,10 @@ import nashbench
 UNROLL = 4
 
 
+class NonfiniteError(FloatingPointError):
+    """Training produced a NaN or infinite value."""
+
+
 @dataclasses.dataclass(frozen=True)
 class Config:
     """Settings of every training run."""
@@ -212,8 +216,8 @@ def policy(actor) -> nashbench.Policy:
 
 
 def weighted_mean(x: jax.Array, weight: jax.Array) -> jax.Array:
-    """Returns the mean of `x` with weights."""
-    return jnp.sum(weight * x) / jnp.sum(weight)
+    """Returns the mean of `x` with weights, or 0 if the weights are all 0."""
+    return jnp.sum(weight * x) / jnp.maximum(jnp.sum(weight), 1e-12)
 
 
 class Step(NamedTuple):
