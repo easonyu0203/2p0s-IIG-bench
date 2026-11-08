@@ -84,9 +84,21 @@ class Game[S: GameState](abc.ABC):
     states, so they have the same equilibria.
 
     To add a game, subclass `Game`, set `num_actions` and `observation_shape`,
-    and implement the rules: `initial_states`, `apply_action`, `observe`,
-    `legal_action_mask`, and `returns`. The rules deal with seats only;
-    `reset` and `step` translate between seats and players.
+    and implement the rules: `apply_action`, `observe`, `legal_action_mask`,
+    `returns`, and how an episode starts, with one of:
+
+    -   `initial_states`, which lists every initial state and its
+        probability, as in card games. Implement this if you can: `reset`
+        samples from the list, and exact exploitability enumerates the game
+        tree from it.
+    -   `sample_initial_state`, which samples one initial state, for games
+        with too many to list, such as a board game with a random board or
+        dice. Its state can carry a PRNG key, which decides the game's later
+        chance events. Exact exploitability then needs your own
+        `sequence_form`.
+
+    The rules deal with seats only; `reset` and `step` translate between
+    seats and players.
 
     Attributes:
         num_actions: Number of actions.
@@ -120,20 +132,11 @@ class Game[S: GameState](abc.ABC):
     def _initial_state(self, key: jax.Array) -> State[S]:
         """Returns the state of a new episode, without its timestep."""
         key, seat_key, chance_key = jax.random.split(key, 3)
-        # Compute the chance tables once, when tracing, not at every call.
-        with jax.ensure_compile_time_eval():
-            states, probs = self.initial_states()
-            cumulative = jnp.cumsum(probs)
-        u = jax.random.uniform(chance_key, maxval=cumulative[-1])
-        # Unrolled, the binary search needs no loop on accelerators.
-        i = jnp.searchsorted(
-            cumulative, u, side="right", method="scan_unrolled"
-        )
         return State(
             key=key,
             # A fair coin swaps the seats of both players or of neither.
             seat=jnp.arange(2) ^ jax.random.bernoulli(seat_key),
-            game_state=jax.tree.map(lambda x: x[i], states),
+            game_state=self.sample_initial_state(chance_key),
         )
 
     def _advance(
@@ -159,13 +162,39 @@ class Game[S: GameState](abc.ABC):
             current_player=state.seat[seat],
         )
 
-    @abc.abstractmethod
+    def sample_initial_state(self, key: jax.Array) -> S:
+        """Returns an initial state, sampled with `key`.
+
+        By default, samples one of `initial_states` by its probability.
+        Override it instead of implementing `initial_states` only if there are
+        too many initial states to list; see `Game`.
+        """
+        # Compute the chance tables once, when tracing, not at every call.
+        with jax.ensure_compile_time_eval():
+            states, probs = self.initial_states()
+            cumulative = jnp.cumsum(probs)
+        u = jax.random.uniform(key, maxval=cumulative[-1])
+        # Unrolled, the binary search needs no loop on accelerators.
+        i = jnp.searchsorted(
+            cumulative, u, side="right", method="scan_unrolled"
+        )
+        return jax.tree.map(lambda x: x[i], states)
+
     def initial_states(self) -> tuple[S, np.ndarray]:
         """Returns every possible initial state, stacked, and its probability.
 
         All chance events, such as card deals, happen at the start, so initial
         states differ only in their outcomes. Probabilities are float64.
+
+        `sample_initial_state` and `sequence_form` use it by default.
+        Implement it, or else override `sample_initial_state`; see `Game`.
         """
+        raise NotImplementedError(
+            f"{type(self).__name__} doesn't list its initial states. A game "
+            "implements `initial_states`, or else overrides "
+            "`sample_initial_state` and has no exact evaluation unless it "
+            "overrides `sequence_form`."
+        )
 
     @abc.abstractmethod
     def apply_action(self, state: S, action: jax.Array) -> S:

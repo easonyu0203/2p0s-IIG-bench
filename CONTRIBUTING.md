@@ -59,9 +59,12 @@ returns, and information-state tensors. To add one:
 1.  Create `src/nashbench/games/<name>.py` with a subclass of `core.Game`.
     Implement the rules for seats, where seat `i` is OpenSpiel's player `i`;
     `Game.reset` and `Game.step` handle players and the seat shuffle. For the
-    simplest example, see `kuhn_poker.py`. If both seats move at once, take
-    their moves in turn and hide seat 0's move until seat 1 moves, as in
-    `goofspiel.py`.
+    simplest example, see `kuhn_poker.py`. List the initial states, one per
+    outcome of chance, with `initial_states`, which exact exploitability
+    needs; only if they are too many to list, override
+    `sample_initial_state` instead, as the docstring of `Game` explains. If
+    both seats move at once, take their moves in turn and hide seat 0's move
+    until seat 1 moves, as in `goofspiel.py`.
 
     Games run in batches on accelerators, so write the rules with
     elementwise operations. For example, to set `x[i]` where `i` depends on

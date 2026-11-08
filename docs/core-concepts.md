@@ -105,6 +105,12 @@ All chance events, such as card deals, happen at the start of an episode.
 it, such as the public card in round 2 of Leduc poker. This process is
 equivalent to OpenSpiel's chance nodes.
 
+A game with too many outcomes to list, such as a board game with dice,
+overrides `Game.sample_initial_state` instead. Its state can carry a PRNG
+key, drawn at the start and hidden from the players, that decides its later
+chance events, so its steps stay deterministic. Such a game has no exact
+exploitability unless it overrides `Game.sequence_form`.
+
 ## End of an episode
 
 After `done` becomes true, `step` leaves the state unchanged and returns zero
